@@ -1,0 +1,3 @@
+spring:
+  application:
+    name: gestor-de-projetos-com-retrieva-augmented-generation
