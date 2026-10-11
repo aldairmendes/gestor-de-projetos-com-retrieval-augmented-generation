@@ -1,0 +1,33 @@
+# === IntelliJ IDEA / IDEs ===
+.idea/
+*.iml
+*.iws
+*.ipr
+*.launch
+.settings/
+.project
+.classpath
+
+# === Variáveis de Ambiente e Segredos ===
+.env
+*.env
+.env.local
+
+# === Compilação e Binários (Maven / Java) ===
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.rar
+
+# === Logs e Arquivos Temporários ===
+*.log
+*.tmp
+*.swp
+.DS_Store
+
+# === Cobertura de Testes / Relatórios ===
+.ncover/
+.coverage
+*.lprof
