@@ -9,7 +9,7 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.mendes15</groupId>
-	<artifactId>gestor-de-projetos-com-retrieva-augmented-generation</artifactId>
+	<artifactId>gestor-de-projetos-com-retrieval-augmented-generation</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name/>
 	<description/>
