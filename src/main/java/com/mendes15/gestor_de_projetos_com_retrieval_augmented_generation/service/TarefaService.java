@@ -2,6 +2,7 @@ package com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.servi
 
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.dto.TarefaResponseDTO;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.exception.ResourceNotFoundException;
+import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.Projeto;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.Tarefa;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.TarefaRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,8 @@ public class TarefaService {
 
     private final TarefaRepository tarefaRepository;
     private final ModelMapper modelMapper;
+    private final ProjetoService projetoService;
+
 
     public List<TarefaResponseDTO> findAll() {
         return tarefaRepository.findAll()
@@ -71,5 +74,10 @@ public class TarefaService {
         }
 
         return dto;
+    }
+
+    public List<Tarefa> listByProjeto(Long projetoId) {
+        Projeto projeto = projetoService.findById(projetoId);
+        return projeto.getTarefas();
     }
 }

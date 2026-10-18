@@ -1,7 +1,7 @@
 # Read Me First
 The following was discovered as part of building this project:
 
-* The original package name 'com.mendes15.gestor-de-projetos-com-retrieva-augmented-generation' is invalid and this project uses 'com.mendes15.gestor_de_projetos_com_retrieva_augmented_generation' instead.
+* The original package name 'com.mendes15.gestor-de-projetos-com-retrieva-augmented-generation' is invalid and this project uses 'com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation' instead.
 
 # Getting Started
 
