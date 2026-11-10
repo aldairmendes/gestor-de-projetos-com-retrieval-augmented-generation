@@ -1,6 +1,6 @@
 package com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.service;
 
-import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.dto.UsuarioRequestDTO;
+import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.dto.UsuarioRegisterRequestDTO;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.dto.UsuarioResponseDTO;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.exception.ResourceNotFoundException;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.Usuario;
@@ -43,7 +43,7 @@ public class UsuarioService {
         );
     }
 
-    public UsuarioResponseDTO update(Long id, UsuarioRequestDTO dto) {
+    public UsuarioResponseDTO update(Long id, UsuarioRegisterRequestDTO dto) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException("User not found."));

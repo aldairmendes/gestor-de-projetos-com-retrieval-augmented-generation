@@ -75,14 +75,14 @@ public class TarefaController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<TarefaResponseDTO> atualizar(
+    public ResponseEntity<TarefaResponseDTO> update(
             @PathVariable Long id,
             @Valid @RequestBody TarefaRequestDTO request) {
 
         Tarefa tarefa = modelMapper.map(request, Tarefa.class);
 
-        Tarefa tarefaAtualizada =
-                tarefaService.atualizar(id, tarefa);
+        TarefaResponseDTO tarefaAtualizada =
+                tarefaService.update(id, tarefa);
 
         TarefaResponseDTO response =
                 modelMapper.map(tarefaAtualizada, TarefaResponseDTO.class);
@@ -94,7 +94,7 @@ public class TarefaController {
     public ResponseEntity<Void> deletar(
             @PathVariable Long id) {
 
-        tarefaService.deletar(id);
+        tarefaService.delete(id);
 
         return ResponseEntity.noContent().build();
     }
