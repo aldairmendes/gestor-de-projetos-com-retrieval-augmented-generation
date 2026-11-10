@@ -19,7 +19,7 @@ public abstract class BaseIntegrationTest {
     protected MockMvc mockMvc;
 
     @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine")
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("pgvector/pgvector:pg16")
             .withDatabaseName("testdb")
             .withUsername("test")
             .withPassword("test");
