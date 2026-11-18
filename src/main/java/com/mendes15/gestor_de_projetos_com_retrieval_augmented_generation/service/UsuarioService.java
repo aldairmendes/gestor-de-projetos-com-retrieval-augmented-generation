@@ -22,7 +22,7 @@ public class UsuarioService {
         return usuarioRepository.findAll()
                 .stream()
                 .map(usuario ->
-                        modelMapper.map(usuario, UsuarioResponseDTO.class))
+                        toDTO(usuario))
                 .toList();
     }
 
@@ -31,16 +31,13 @@ public class UsuarioService {
                 .orElseThrow(() ->
                         new ResourceNotFoundException("User not found."));
 
-        return modelMapper.map(usuario, UsuarioResponseDTO.class);
+        return toDTO(usuario);
     }
 
     public UsuarioResponseDTO save(Usuario usuario) {
         Usuario savedUsuario = usuarioRepository.save(usuario);
 
-        return modelMapper.map(
-                savedUsuario,
-                UsuarioResponseDTO.class
-        );
+        return toDTO(savedUsuario);
     }
 
     public UsuarioResponseDTO update(Long id, UsuarioRegisterRequestDTO dto) {
@@ -58,10 +55,7 @@ public class UsuarioService {
 
         Usuario updatedUsuario = usuarioRepository.save(usuario);
 
-        return modelMapper.map(
-                updatedUsuario,
-                UsuarioResponseDTO.class
-        );
+        return toDTO(updatedUsuario);
     }
 
     public void delete(Long id) {
@@ -72,4 +66,9 @@ public class UsuarioService {
         usuarioRepository.delete(usuario);
     }
 
+    private UsuarioResponseDTO toDTO(Usuario usuario) {
+        UsuarioResponseDTO dto = modelMapper.map(usuario, UsuarioResponseDTO.class);
+        dto.setUsername(usuario.getDisplayName());
+        return dto;
+    }
 }
