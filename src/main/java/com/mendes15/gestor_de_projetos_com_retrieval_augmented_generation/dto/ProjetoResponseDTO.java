@@ -14,7 +14,13 @@ public class ProjetoResponseDTO {
 
     private Long id;
     private String nome;
+    private String descricao;
+    private boolean arquivado;
+    private Long criadorId;
+    private List<TeamMemberDTO> equipe;
     private List<Long> equipeIds;
     private List<Long> tarefasIds;
     private Date createdAt;
+    private String meuPapelNoProjeto;
+    private boolean podeGerenciar;
 }

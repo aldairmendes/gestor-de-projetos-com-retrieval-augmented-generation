@@ -3,6 +3,7 @@ package com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.contr
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.dto.UsuarioLoginRequestDTO;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.dto.UsuarioRegisterRequestDTO;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.service.AuthService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,12 +19,12 @@ public class AuthController {
     private final AuthService service;
 
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody UsuarioRegisterRequestDTO request) {
+    public ResponseEntity<String> register(@Valid @RequestBody UsuarioRegisterRequestDTO request) {
         return ResponseEntity.ok(service.registrar(request));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> authenticate(@RequestBody UsuarioLoginRequestDTO request) {
+    public ResponseEntity<String> authenticate(@Valid @RequestBody UsuarioLoginRequestDTO request) {
         return ResponseEntity.ok(service.autenticar(request));
     }
 }

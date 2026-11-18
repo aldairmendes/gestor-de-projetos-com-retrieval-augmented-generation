@@ -41,6 +41,7 @@ public class Usuario implements UserDetails {
             joinColumns = @JoinColumn(name = "usuario_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
+    @Builder.Default
     private Set<Role> roles = new HashSet<>();
 
     @Override
@@ -58,6 +59,10 @@ public class Usuario implements UserDetails {
     @Override
     public String getUsername() {
         return this.email;
+    }
+
+    public String getDisplayName() {
+        return this.username;
     }
 
     @Override
