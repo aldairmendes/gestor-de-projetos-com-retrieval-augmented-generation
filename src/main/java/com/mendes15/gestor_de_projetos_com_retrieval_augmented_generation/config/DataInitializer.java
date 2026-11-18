@@ -45,7 +45,7 @@ public class DataInitializer implements CommandLineRunner {
                     .username("admin")
                     .email(adminEmail)
                     .password(passwordEncoder.encode(adminPassword))
-                    .roles(new HashSet<>(Set.of(adminRole)))
+                    .roles(new HashSet<>(Set.of(adminRole, roleRepository.findByNome(RoleNames.MEMBER).orElseThrow())))
                     .build());
         }
     }

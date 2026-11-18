@@ -6,5 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface TarefaRepository extends JpaRepository<Tarefa, Long> {
+    List<Tarefa> findDistinctByProjeto_Equipe_Id(Long usuarioId);
+
     List<Tarefa> findByProjetoId(Long projetoId);
 }

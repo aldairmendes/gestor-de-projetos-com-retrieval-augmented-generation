@@ -19,3 +19,7 @@ application:
     jwt:
       secret-key: "${JWT_SECRET_KEY}"
       expiration: ${JWT_EXPIRATION}
+
+# Preserva schemas usados pelas respostas reutilizáveis de components.responses.
+springdoc:
+  remove-broken-reference-definitions: false

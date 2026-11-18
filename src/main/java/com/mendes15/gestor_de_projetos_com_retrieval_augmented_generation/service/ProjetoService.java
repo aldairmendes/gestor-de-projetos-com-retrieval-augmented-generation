@@ -1,5 +1,6 @@
 package com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.service;
 
+import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.security.AccessPolicy;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.dto.ProjetoRequestDTO;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.dto.ProjetoResponseDTO;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.dto.TeamMemberDTO;
@@ -9,11 +10,9 @@ import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.Usuario;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.ProjetoRepository;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.UsuarioRepository;
-import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.security.RoleNames;
+import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.enums.TipoRole;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -29,13 +28,15 @@ import java.util.Set;
 @Service
 public class ProjetoService {
 
-    private static final String PROJECT_ROLE_MANAGER = "ROLE_GERENTE";
-    private static final String PROJECT_ROLE_MEMBER = "ROLE_MEMBRO";
+    private static final String PROJECT_ROLE_MANAGER = TipoRole.ROLE_GERENTE.name();
+    private static final String PROJECT_ROLE_MEMBER = TipoRole.ROLE_MEMBRO.name();
 
+    private final AccessPolicy access;
     private final ProjetoRepository projetoRepository;
     private final UsuarioRepository usuarioRepository;
 
-    public ProjetoService(ProjetoRepository projetoRepository, UsuarioRepository usuarioRepository) {
+    public ProjetoService(ProjetoRepository projetoRepository, UsuarioRepository usuarioRepository, AccessPolicy access) {
+        this.access = access;
         this.projetoRepository = projetoRepository;
         this.usuarioRepository = usuarioRepository;
     }
@@ -43,7 +44,7 @@ public class ProjetoService {
     @Transactional(readOnly = true)
     public List<ProjetoResponseDTO> listAccessible() {
         Usuario currentUser = getCurrentUser();
-        return projetoRepository.findAll().stream()
+        return projetoRepository.findDistinctByEquipe_Id(currentUser.getId()).stream()
                 .filter(project -> canView(project, currentUser))
                 .sorted(Comparator.comparing(Projeto::getId).reversed())
                 .map(project -> toDTO(project, currentUser))
@@ -60,13 +61,17 @@ public class ProjetoService {
         return toDTO(project, currentUser);
     }
 
+    @Transactional(readOnly = true)
     public Projeto findById(Long id) {
-        return projetoRepository.findById(id)
+        Projeto projeto = projetoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Projeto não encontrado com o ID: " + id));
+        access.requireView(projeto);
+        return projeto;
     }
 
     @Transactional
     public ProjetoResponseDTO create(ProjetoRequestDTO request) {
+        access.requireManager();
         Usuario currentUser = getCurrentUser();
         Projeto project = new Projeto();
         project.setNome(request.getNome().trim());
@@ -113,26 +118,76 @@ public class ProjetoService {
         projetoRepository.delete(project);
     }
 
+    @Transactional(readOnly = true)
+    public List<TeamMemberDTO> listTeam(Long projetoId) {
+        return teamMembers(findById(projetoId));
+    }
+
+    @Transactional
+    public List<TeamMemberDTO> defineTeam(Long projetoId, List<Long> membrosIds) {
+        Projeto projeto = findManageableActiveProject(projetoId);
+        List<Usuario> equipe = buildTeam(membrosIds, projeto.getCriador());
+        projeto.getEquipe().clear();
+        projeto.getEquipe().addAll(equipe);
+        projetoRepository.save(projeto);
+        return teamMembers(projeto);
+    }
+
+    @Transactional
+    public List<TeamMemberDTO> addTeamMembers(Long projetoId, List<Long> membrosIds) {
+        Projeto projeto = findManageableActiveProject(projetoId);
+        List<Usuario> novosMembros = buildTeam(membrosIds, projeto.getCriador());
+        Set<Long> presentes = projeto.getEquipe().stream().map(Usuario::getId)
+                .collect(java.util.stream.Collectors.toSet());
+        novosMembros.stream().filter(membro -> presentes.add(membro.getId()))
+                .forEach(projeto.getEquipe()::add);
+        projetoRepository.save(projeto);
+        return teamMembers(projeto);
+    }
+
+    @Transactional
+    public void removeTeamMember(Long projetoId, Long usuarioId) {
+        Projeto projeto = findManageableActiveProject(projetoId);
+        if (projeto.getCriador() != null && Objects.equals(projeto.getCriador().getId(), usuarioId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "O criador deve permanecer na equipe.");
+        }
+        if (!projeto.getEquipe().removeIf(membro -> Objects.equals(membro.getId(), usuarioId))) {
+            throw new ResourceNotFoundException("Usuário não pertence à equipe deste projeto.");
+        }
+        projetoRepository.save(projeto);
+    }
+
+    private Projeto findManageableActiveProject(Long projetoId) {
+        access.requireManager();
+        Projeto projeto = findById(projetoId);
+        access.requireManage(projeto);
+        if (projeto.isArquivado()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Desarquive o projeto antes de alterar sua equipe.");
+        }
+        return projeto;
+    }
+
+    private List<TeamMemberDTO> teamMembers(Projeto projeto) {
+        List<Usuario> equipe = projeto.getEquipe() == null ? List.of() : projeto.getEquipe();
+        return equipe.stream()
+                .sorted(Comparator.comparing(Usuario::getDisplayName, String.CASE_INSENSITIVE_ORDER))
+                .map(membro -> new TeamMemberDTO(membro.getId(), membro.getDisplayName(), membro.getEmail()))
+                .toList();
+    }
+
     private boolean canView(Projeto project, Usuario user) {
-        return RoleNames.hasRole(user, RoleNames.ADMIN)
-                || isCreator(project, user)
-                || isMember(project, user);
+        return access.canView(project, user);
     }
 
     private boolean canManage(Projeto project, Usuario user) {
-        return RoleNames.hasRole(user, RoleNames.ADMIN)
-                || isCreator(project, user)
-                || (RoleNames.hasRole(user, RoleNames.MANAGER) && isMember(project, user));
+        return access.canManage(project, user);
     }
 
     private void requireManagePermission(Projeto project, Usuario user) {
         if (!canManage(project, user)) {
             throw new AccessDeniedException("Você não tem permissão para gerenciar este projeto.");
         }
-    }
-
-    private boolean isCreator(Projeto project, Usuario user) {
-        return project.getCriador() != null && Objects.equals(project.getCriador().getId(), user.getId());
     }
 
     private boolean isMember(Projeto project, Usuario user) {
@@ -143,7 +198,10 @@ public class ProjetoService {
     private List<Usuario> buildTeam(List<Long> memberIds, Usuario requiredMember) {
         Set<Long> uniqueIds = new LinkedHashSet<>();
         if (memberIds != null) {
-            memberIds.stream().filter(Objects::nonNull).forEach(uniqueIds::add);
+            if (memberIds.stream().anyMatch(id -> id == null || id <= 0)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "IDs dos membros devem ser positivos e não nulos.");
+            }
+            uniqueIds.addAll(memberIds);
         }
         List<Usuario> foundUsers = usuarioRepository.findAllById(uniqueIds);
         if (foundUsers.size() != uniqueIds.size()) {
@@ -165,29 +223,17 @@ public class ProjetoService {
     }
 
     private Usuario getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new AccessDeniedException("Usuário não autenticado.");
-        }
-        if (authentication.getPrincipal() instanceof Usuario user) {
-            return user;
-        }
-        return usuarioRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new AccessDeniedException("Usuário autenticado não encontrado."));
+        return access.currentUser();
     }
 
     private ProjetoResponseDTO toDTO(Projeto project, Usuario currentUser) {
-        List<Usuario> team = project.getEquipe() == null ? List.of() : project.getEquipe();
-        List<TeamMemberDTO> members = team.stream()
-                .sorted(Comparator.comparing(Usuario::getDisplayName, String.CASE_INSENSITIVE_ORDER))
-                .map(member -> new TeamMemberDTO(member.getId(), member.getDisplayName(), member.getEmail()))
-                .toList();
+        List<TeamMemberDTO> members = teamMembers(project);
 
         String myRole = null;
-        if (isCreator(project, currentUser)) {
+        if (canManage(project, currentUser)) {
             myRole = PROJECT_ROLE_MANAGER;
         } else if (isMember(project, currentUser)) {
-            myRole = RoleNames.hasRole(currentUser, RoleNames.MANAGER) ? PROJECT_ROLE_MANAGER : PROJECT_ROLE_MEMBER;
+            myRole = PROJECT_ROLE_MEMBER;
         }
 
         ProjetoResponseDTO dto = new ProjetoResponseDTO();

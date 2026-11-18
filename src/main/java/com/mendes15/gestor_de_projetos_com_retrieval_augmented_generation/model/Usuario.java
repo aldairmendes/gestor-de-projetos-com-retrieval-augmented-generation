@@ -1,5 +1,6 @@
 package com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model;
 
+import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.enums.TipoRole;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -47,7 +48,7 @@ public class Usuario implements UserDetails {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return roles.stream()
-                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getNome()))
+                .map(role -> new SimpleGrantedAuthority(TipoRole.fromNome(role.getNome()).name()))
                 .collect(Collectors.toList());
     }
 
