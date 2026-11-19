@@ -26,4 +26,16 @@ public class TarefaRequestDTO {
 
     @NotNull(message = "Project ID is required")
     private Long projetoId;
+    @jakarta.validation.constraints.Size(max=10000)
+    private String requisitos;
+    @jakarta.validation.constraints.Size(max=30)
+    private java.util.Set<@jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(max=100) String> tecnologias = new java.util.LinkedHashSet<>();
+    @jakarta.validation.constraints.Min(1) @jakarta.validation.constraints.Max(5)
+    private Integer complexidade;
+    private java.time.LocalDate prazo;
+    private Long responsavelId;
+
+    public TarefaRequestDTO(String titulo, String conteudo, StatusTarefa status, PrioridadeTarefa prioridade, Long projetoId) {
+        this.titulo=titulo; this.conteudo=conteudo; this.status=status; this.prioridade=prioridade; this.projetoId=projetoId;
+    }
 }

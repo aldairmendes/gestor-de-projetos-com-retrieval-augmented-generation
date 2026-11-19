@@ -19,7 +19,8 @@ import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.service.TarefaService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
+import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.Usuario;
+import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.rag.RagDtos.Historico;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -34,7 +35,6 @@ import java.util.List;
 public class TarefaController {
 
     private final TarefaService tarefaService;
-    private final ModelMapper modelMapper;
 
     @PostMapping
     @Operation(summary = "Criar tarefa", description = "Exige ROLE_GERENTE e participação na equipe do projeto informado. O projeto deve estar ativo.")
@@ -51,12 +51,7 @@ public class TarefaController {
     public ResponseEntity<TarefaResponseDTO> criar(
             @Valid @RequestBody TarefaRequestDTO request) {
 
-        Tarefa tarefa = modelMapper.map(request, Tarefa.class);
-        tarefa.setId(null);
-        var projeto = new Projeto();
-        projeto.setId(request.getProjetoId());
-        tarefa.setProjeto(projeto);
-
+        Tarefa tarefa = toTask(request);
         Tarefa tarefaSalva = tarefaService.save(tarefa);
 
         TarefaResponseDTO response =
@@ -76,14 +71,7 @@ public class TarefaController {
     })
     public ResponseEntity<List<TarefaResponseDTO>> listar() {
 
-        List<TarefaResponseDTO> tarefas = tarefaService.findAll();
-
-        List<TarefaResponseDTO> response = tarefas.stream()
-                .map(tarefa ->
-                        modelMapper.map(tarefa, TarefaResponseDTO.class))
-                .toList();
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(tarefaService.findAll());
     }
 
     @GetMapping("/{id}")
@@ -115,15 +103,7 @@ public class TarefaController {
     public ResponseEntity<List<TarefaResponseDTO>> listarPorProjeto(
             @Parameter(description = "ID do projeto cuja equipe o usuário integra", example = "1", required = true) @PathVariable Long projetoId) {
 
-        List<TarefaResponseDTO> tarefas =
-                tarefaService.listByProjeto(projetoId);
-
-        List<TarefaResponseDTO> response = tarefas.stream()
-                .map(tarefa ->
-                        modelMapper.map(tarefa, TarefaResponseDTO.class))
-                .toList();
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(tarefaService.listByProjeto(projetoId));
     }
 
     @PutMapping("/{id}")
@@ -142,19 +122,35 @@ public class TarefaController {
             @Parameter(description = "ID do tarefa", example = "1", required = true) @PathVariable Long id,
             @Valid @RequestBody TarefaRequestDTO request) {
 
-        Tarefa tarefa = modelMapper.map(request, Tarefa.class);
-        tarefa.setId(null);
-        var projeto = new Projeto();
+        return ResponseEntity.ok(tarefaService.update(id, toTask(request)));
+    }
+
+    private Tarefa toTask(TarefaRequestDTO request) {
+        Tarefa tarefa = new Tarefa();
+        tarefa.setTitulo(request.getTitulo());
+        tarefa.setConteudo(request.getConteudo());
+        tarefa.setStatus(request.getStatus());
+        tarefa.setPrioridade(request.getPrioridade());
+        tarefa.setRequisitos(request.getRequisitos());
+        tarefa.setTecnologias(request.getTecnologias());
+        tarefa.setComplexidade(request.getComplexidade());
+        tarefa.setPrazo(request.getPrazo());
+
+        Projeto projeto = new Projeto();
         projeto.setId(request.getProjetoId());
         tarefa.setProjeto(projeto);
+        if (request.getResponsavelId() != null) {
+            Usuario responsavel = new Usuario();
+            responsavel.setId(request.getResponsavelId());
+            tarefa.setResponsavel(responsavel);
+        }
+        return tarefa;
+    }
 
-        TarefaResponseDTO tarefaAtualizada =
-                tarefaService.update(id, tarefa);
-
-        TarefaResponseDTO response =
-                modelMapper.map(tarefaAtualizada, TarefaResponseDTO.class);
-
-        return ResponseEntity.ok(response);
+    @GetMapping("/{id}/historico")
+    @Operation(summary = "Consultar histórico da tarefa", description = "Exibe alterações feitas no projeto atual aos integrantes da equipe.")
+    public List<Historico> history(@PathVariable Long id) {
+        return tarefaService.history(id);
     }
 
     @PatchMapping("/{id}/status")

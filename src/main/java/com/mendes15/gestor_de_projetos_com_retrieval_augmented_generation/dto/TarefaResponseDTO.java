@@ -21,4 +21,9 @@ public class TarefaResponseDTO {
     private Long projetoId;
     private Date createdAt;
     private Date updatedAt;
+    private String requisitos;
+    private java.util.Set<String> tecnologias = new java.util.LinkedHashSet<>();
+    private Integer complexidade;
+    private java.time.LocalDate prazo;
+    private Long responsavelId;
 }

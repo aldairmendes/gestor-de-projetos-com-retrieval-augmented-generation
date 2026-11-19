@@ -8,6 +8,11 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
@@ -23,3 +28,10 @@ application:
 # Preserva schemas usados pelas respostas reutilizáveis de components.responses.
 springdoc:
   remove-broken-reference-definitions: false
+
+
+rag:
+  enabled: ${RAG_ENABLED:false}
+  api-key: ${GEMINI_API_KEY:}
+  chat-model: ${GEMINI_CHAT_MODEL:gemini-3.5-flash-lite}
+  embedding-model: ${GEMINI_EMBEDDING_MODEL:gemini-embedding-001}

@@ -32,13 +32,21 @@ Sem autenticação, as rotas protegidas retornam 401; sem permissão, 403. Senha
 
 Os testes em `src/test/java/.../security` cobrem isolamento entre equipes, matriz de papéis, bloqueio de promoção indevida, atualização de status, transferências e restrições HTTP. São independentes de Docker e de serviços de IA.
 
-Nesta revisão do código ainda não existem controladores/serviços de IA, documentos ou regras de domínio. O filtro reserva `/api/admin/**` ao administrador, mas a filtragem de fontes RAG por projeto deverá usar a mesma política quando esses recursos forem implementados.
+| Operação de IA | Acesso |
+| --- | --- |
+| Consultar o assistente, documentos e trechos | Integrante do projeto |
+| Gerar descrição, sugerir dependências, ver resumos e gargalos, consultar e gerar recomendações, registrar decisões | Gerente integrante do projeto |
+| Cadastrar competências | Titular do perfil ou administrador |
+| Indexar ou excluir documentos | Administrador integrante de projeto ativo |
+| Consultar ou alterar regras e vocabulário de domínio | Administrador |
+
+O histórico da tarefa e as recomendações ficam vinculados ao projeto em que foram registrados. Apenas o histórico do projeto atual é exibido após uma transferência.
 
 Os testes antigos em `controller` foram adaptados aos papéis globais, às rotas existentes e ao formato atual dos retornos. A suíte completa e seus cenários estão descritos em [TESTES.md](TESTES.md).
 
 ## Swagger / OpenAPI
 
-Com a aplicação em execução, acesse `/swagger-ui/index.html` para explorar os cinco controllers ou `/v3/api-docs` para obter o contrato OpenAPI em JSON. A documentação é pública.
+Com a aplicação em execução, acesse `/swagger-ui/index.html` para explorar as operações da API ou `/v3/api-docs` para obter o contrato OpenAPI em JSON. A documentação é pública.
 
 1. Execute `POST /api/v1/auth/login` com e-mail e senha (ou use o cadastro público).
 2. Copie o JWT retornado como texto puro.

@@ -40,6 +40,22 @@ public class Tarefa {
     @JoinColumn(name = "projeto_id", nullable = false)
     private Projeto projeto;
 
+    @Column(columnDefinition="TEXT")
+    private String requisitos;
+
+    @ElementCollection
+    @CollectionTable(name="tarefa_tecnologias", joinColumns=@JoinColumn(name="tarefa_id"))
+    @Column(name="tecnologia")
+    private java.util.Set<String> tecnologias = new java.util.LinkedHashSet<>();
+
+    private Integer complexidade;
+    private java.time.LocalDate prazo;
+
+    @ManyToOne(fetch=FetchType.LAZY)
+    @JoinColumn(name="responsavel_id")
+    @org.hibernate.annotations.OnDelete(action=org.hibernate.annotations.OnDeleteAction.SET_NULL)
+    private Usuario responsavel;
+
     @CreationTimestamp
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "created_at", updatable = false)

@@ -19,8 +19,8 @@ Os testes de integração usam Spring Boot, MockMvc, os filtros reais de seguran
 | Equipes | Definição/substituição, consulta, inclusão idempotente, remoção, persistência dos vínculos, perda de acesso, criador obrigatório, saída do gerente, IDs inválidos e projeto arquivado | `EquipeControllerIntegrationTest` |
 | Usuários | Diretório, perfis, criação administrativa, senhas, exclusão e atribuição validada de papéis globais | `UsuarioControllerTest`, `UsuarioAuthorizationTest` |
 | Inicialização | Contexto da aplicação, catálogo de papéis idempotente, administrador inicial com hash e papel mínimo, preservação de conta existente | `GestorDeProjetosComRetrievaAugmentedGenerationApplicationTests`, `DataInitializerTest` |
-| Swagger | Todas as 26 operações dos cinco controllers, descrições, JWT, exemplos, schemas, referências internas, enums, respostas sem corpo e interface pública | `SwaggerControllerTest` |
-| Rotas futuras | Restrição do namespace administrativo e 404 para endpoints de IA/domínio ainda não implementados | `IaEAdminControllerTest` |
+| Swagger | Todas as operações dos controladores REST, descrições, JWT, exemplos, schemas, referências internas, enums, respostas sem corpo e interface pública | `SwaggerControllerTest` |
+| IA e RAG | Regras de domínio, isolamento por equipe, alternativas sem provedor, recomendação, feedback, histórico, ingestão com provedor simulado, filtragem de trechos e validação das citações | `IaEAdminControllerTest`, `RagDocumentIntegrationTest` |
 
 Os testes unitários de autorização permanecem independentes de Spring e do banco. O Mockito usa `mock-maker-subclass` porque os doubles atuais não precisam substituir classes finais, evitando a necessidade de anexar um agente à JVM.
 
@@ -30,7 +30,7 @@ Os testes unitários de autorização permanecem independentes de Spring e do ba
 - Contrato OpenAPI gerado durante o teste: `target/openapi.json`.
 - Uma classe: `mvn -Dtest=EquipeControllerIntegrationTest test`.
 
-A suíte verifica o comportamento atual da API. Ela não mede percentual de cobertura e não substitui testes específicos de PostgreSQL, pgvector ou chamadas a modelos de IA. Esses componentes ainda não fazem parte dos fluxos presentes nesta revisão do código.
+A suíte verifica o comportamento atual da API. Ela não mede percentual de cobertura e não substitui testes específicos de PostgreSQL, pgvector ou chamadas a modelos de IA.
 
 ## Regressões corrigidas durante a ampliação
 

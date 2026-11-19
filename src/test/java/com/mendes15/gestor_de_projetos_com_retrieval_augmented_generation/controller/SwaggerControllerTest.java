@@ -38,7 +38,7 @@ class SwaggerControllerTest extends BaseIntegrationTest {
                 }
             }
         }
-        assertEquals(26, operations);
+        assertEquals(43, operations);
         assertEquals("bearer", spec.at("/components/securitySchemes/bearerAuth/scheme").asText());
     }
 
@@ -50,7 +50,7 @@ class SwaggerControllerTest extends BaseIntegrationTest {
             var path = paths.next(); var methods = path.getValue().fields();
             while (methods.hasNext()) {
                 var op = methods.next().getValue();
-                if (op.has("requestBody")) {
+                if (op.at("/requestBody/content").has("application/json")) {
                     var content = op.at("/requestBody/content/application~1json");
                     assertTrue(content.has("schema"), path.getKey());
                     assertTrue(content.has("example") || content.has("examples"), path.getKey());

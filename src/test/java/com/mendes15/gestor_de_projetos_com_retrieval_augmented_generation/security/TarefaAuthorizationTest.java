@@ -21,7 +21,7 @@ class TarefaAuthorizationTest {
     final UsuarioRepository usuarios = mock(UsuarioRepository.class);
     final AccessPolicy policy = new AccessPolicy(usuarios);
     final ProjetoService projetoService = new ProjetoService(projetos, usuarios, policy);
-    final TarefaService service = new TarefaService(tarefas, new ModelMapper(), projetoService, policy);
+    final TarefaService service = new TarefaService(tarefas, new ModelMapper(), projetoService, policy, mock(HistoricoTarefaRepository.class), usuarios);
 
     @AfterEach void clear() { SecurityContextHolder.clearContext(); }
 
