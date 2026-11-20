@@ -23,12 +23,51 @@ class ProjetoControllerTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.podeGerenciar").value(true));
     }
 
-    @Test void memberCannotCreateOrDeleteProject() throws Exception {
-        mvc.perform(post("/api/projetos").with(as(membro)).contentType(MediaType.APPLICATION_JSON)
-                        .content(json(new ProjetoRequestDTO("Novo", null))))
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"", ",\"equipeIds\":[]", ",\"equipeIds\":null"})
+    void memberCreatesEmptyProjectAndAddsPeopleLater(String equipe) throws Exception {
+        String token = jwt.generateToken(membro);
+        var criado = mvc.perform(post("/api/projetos").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Meu projeto\"" + equipe + "}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.criadorId").value(membro.getId()))
+                .andExpect(jsonPath("$.equipeIds.length()").value(1))
+                .andExpect(jsonPath("$.equipeIds[0]").value(membro.getId()))
+                .andExpect(jsonPath("$.tarefasIds.length()").value(0))
+                .andExpect(jsonPath("$.podeGerenciar").value(false))
+                .andExpect(jsonPath("$.podeAdicionarMembros").value(true))
+                .andReturn().getResponse();
+        String novo = "/api/projetos/" + objectMapper.readTree(criado.getContentAsByteArray()).get("id").asLong();
+        reload();
+        mvc.perform(get(novo).with(as(externo))).andExpect(status().isForbidden());
+        mvc.perform(post(novo + "/equipe/membros").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"membrosIds\":[" + externo.getId() + "]}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(2));
+        reload();
+        mvc.perform(get(novo).with(as(externo))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.equipeIds.length()").value(2));
+        assertEquals(java.util.Set.of("MEMBRO"), usuarios.findById(membro.getId()).orElseThrow().getRoles()
+                .stream().map(role -> role.getNome()).collect(java.util.stream.Collectors.toSet()));
+        mvc.perform(post(url() + "/equipe/membros").with(as(membro)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"membrosIds\":[" + externo.getId() + "]}"))
                 .andExpect(status().isForbidden());
         mvc.perform(delete(url()).with(as(membro))).andExpect(status().isForbidden());
-        assertTrue(projetos.existsById(projeto.getId()));
+    }
+
+    @Test void memberCannotSetInitialTeamOrAddPeopleToArchivedProject() throws Exception {
+        mvc.perform(post("/api/projetos").with(as(membro)).contentType(MediaType.APPLICATION_JSON)
+                        .content(json(new ProjetoRequestDTO("Com equipe", null, List.of(externo.getId())))))
+                .andExpect(status().isForbidden());
+        var arquivado = project("Arquivado", membro);
+        arquivado.setArquivado(true);
+        projetos.saveAndFlush(arquivado);
+        String urlArquivado = "/api/projetos/" + arquivado.getId();
+        mvc.perform(post(urlArquivado + "/equipe/membros").with(as(membro)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"membrosIds\":[" + externo.getId() + "]}"))
+                .andExpect(status().isConflict());
+        mvc.perform(get(urlArquivado).with(as(membro))).andExpect(status().isOk())
+                .andExpect(jsonPath("$.podeAdicionarMembros").value(false));
     }
 
     @Test void listOnlyIncludesParticipatingProjects() throws Exception {

@@ -45,8 +45,8 @@ class HttpRoleAccessTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"MEMBRO,403", "GERENTE,200", "ADMINISTRADOR,403"})
-    void onlyManagersCreateProjects(String role, int expected) throws Exception {
+    @CsvSource({"MEMBRO,200", "GERENTE,200", "ADMINISTRADOR,200"})
+    void authenticatedRolesCanReachProjectCreation(String role, int expected) throws Exception {
         mvc.perform(post("/api/projetos").with(user("user").roles(role)))
                 .andExpect(status().is(expected));
     }
@@ -62,6 +62,7 @@ class HttpRoleAccessTest {
 
     @Test void unauthenticatedGets401() throws Exception {
         mvc.perform(get("/api/tarefas")).andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/projetos")).andExpect(status().isUnauthorized());
     }
 
     @Test void registrationIsPublic() throws Exception {

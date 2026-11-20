@@ -34,9 +34,9 @@ public class ProjetoController {
     }
 
     @PostMapping
-    @Operation(summary = "Criar projeto", description = "Exige ROLE_GERENTE. Inclui automaticamente o criador na equipe. Administradores precisam também do papel de gerente.")
+    @Operation(summary = "Criar projeto", description = "Usuários autenticados podem criar um projeto apenas com o nome. O criador entra automaticamente na equipe. Enviar IDs de outros integrantes na criação exige ROLE_GERENTE.")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true,
-            content = @Content(mediaType = "application/json", examples = @ExampleObject(value = "{\"nome\":\"Plataforma RAG\",\"descricao\":\"Gestão de projetos\",\"equipeIds\":[2,3]}")))
+            content = @Content(mediaType = "application/json", examples = @ExampleObject(value = "{\"nome\":\"Plataforma RAG\"}")))
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Registro criado com sucesso.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ProjetoResponseDTO.class))),
             @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest"),

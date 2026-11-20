@@ -65,7 +65,7 @@ public class EquipeController {
     }
 
     @PostMapping("/membros")
-    @Operation(summary = "Adicionar membros à equipe", description = "Exige ROLE_GERENTE e participação na equipe de um projeto ativo. Adiciona usuários cadastrados e preserva os integrantes atuais. IDs repetidos ou já presentes não duplicam membros. A inclusão concede acesso ao projeto e às suas tarefas; não promove papéis globais.")
+    @Operation(summary = "Adicionar membros à equipe", description = "Disponível ao criador e aos gerentes da equipe de um projeto ativo. Adiciona usuários cadastrados e preserva os integrantes atuais. IDs repetidos ou já presentes não duplicam membros. A inclusão concede acesso ao projeto e às suas tarefas; não promove papéis globais.")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true,
             content = @Content(mediaType = "application/json",
                     examples = @ExampleObject(value = "{\"membrosIds\":[2,3]}")))

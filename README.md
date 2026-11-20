@@ -15,14 +15,15 @@ Os papéis `MEMBRO`, `GERENTE` e `ADMINISTRADOR` são criados automaticamente. T
 
 | Método | Rota | Descrição |
 |---|---|---|
-| GET | `/api/projetos` | Projetos visíveis ao usuário (ADMINISTRADOR vê todos; os demais, os que criaram ou de cuja equipe fazem parte) |
+| GET | `/api/projetos` | Projetos dos quais o usuário é integrante |
 | GET | `/api/projetos/{id}` | Detalhe |
-| POST | `/api/projetos` | `{ nome, descricao?, equipeIds? }`. O criador vira gerente e sempre integra a equipe |
+| POST | `/api/projetos` | Envie `{"nome":"Meu projeto"}` para começar com o criador como único integrante. Enviar `equipeIds` com convidados exige o papel de gerente |
+| POST | `/api/projetos/{id}/equipe/membros` | O criador ou um gerente da equipe pode adicionar usuários cadastrados a um projeto ativo enviando `{"membrosIds":[2,3]}` |
 | PUT | `/api/projetos/{id}` | Edita nome, descrição e equipe (`equipeIds: null` mantém a equipe). Projetos arquivados retornam 409 |
 | PATCH | `/api/projetos/{id}/arquivar` / `desarquivar` | Arquiva ou restaura |
 | DELETE | `/api/projetos/{id}` | Exclusão definitiva |
 
-Editar, arquivar, definir a equipe e excluir são permitidos ao criador, a um `GERENTE` que esteja na equipe ou a um `ADMINISTRADOR`. A resposta traz `podeGerenciar` e `meuPapelNoProjeto` para o frontend adaptar a interface.
+Editar, arquivar, substituir a equipe e excluir exigem o papel de gerente e participação na equipe. A resposta inclui `podeAdicionarMembros` para o frontend identificar quem pode usar a inclusão posterior, além de `podeGerenciar` e `meuPapelNoProjeto`.
 
 Erros seguem o formato `{ status, erro, mensagem, erros?, timestamp }`.
 
