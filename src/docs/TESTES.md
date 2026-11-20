@@ -1,5 +1,7 @@
 # Testes automatizados
 
+Para executar cenários interativos, consulte o [manual de testes pelo Swagger](MANUAL_TESTES_SWAGGER.md).
+
 Execute a suíte completa com Java 21 e Maven:
 
 ```bash

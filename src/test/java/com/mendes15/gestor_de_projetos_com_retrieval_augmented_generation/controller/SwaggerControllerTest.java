@@ -38,7 +38,7 @@ class SwaggerControllerTest extends BaseIntegrationTest {
                 }
             }
         }
-        assertEquals(43, operations);
+        assertEquals(47, operations);
         assertEquals("bearer", spec.at("/components/securitySchemes/bearerAuth/scheme").asText());
     }
 
