@@ -35,6 +35,11 @@ public class AccessPolicy {
         return RoleNames.hasRole(user, RoleNames.MANAGER) && canView(projeto, user);
     }
 
+    public boolean canAddTeamMembers(Projeto projeto, Usuario user) {
+        return canView(projeto, user) && (RoleNames.hasRole(user, RoleNames.MANAGER)
+                || projeto.getCriador() != null && Objects.equals(projeto.getCriador().getId(), user.getId()));
+    }
+
     public void requireView(Projeto projeto) {
         if (!canView(projeto, currentUser())) throw new AccessDeniedException("Você não tem acesso a este projeto.");
     }

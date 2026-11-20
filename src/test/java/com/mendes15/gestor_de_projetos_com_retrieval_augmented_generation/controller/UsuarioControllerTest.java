@@ -72,7 +72,7 @@ class UsuarioControllerTest extends BaseIntegrationTest {
     @Test void adminAssignmentRetainsMemberAndTakesEffectWithExistingJwt() throws Exception {
         String token = jwt.generateToken(membro);
         mvc.perform(post("/api/projetos").header("Authorization","Bearer "+token)
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Antes\"}"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Antes\",\"equipeIds\":[" + externo.getId() + "]}"))
                 .andExpect(status().isForbidden());
         mvc.perform(put(url(membro.getId())+"/papeis").with(as(administrador)).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"papeis\":[\"ROLE_GERENTE\"]}"))
@@ -81,7 +81,7 @@ class UsuarioControllerTest extends BaseIntegrationTest {
         assertEquals(Set.of("MEMBRO","GERENTE"), usuarios.findById(membro.getId()).orElseThrow().getRoles().stream()
                 .map(r -> r.getNome()).collect(java.util.stream.Collectors.toSet()));
         mvc.perform(post("/api/projetos").header("Authorization","Bearer "+token)
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Depois\"}"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Depois\",\"equipeIds\":[" + externo.getId() + "]}"))
                 .andExpect(status().isCreated());
     }
 

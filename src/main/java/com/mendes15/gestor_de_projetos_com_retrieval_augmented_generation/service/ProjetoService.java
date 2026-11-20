@@ -71,8 +71,10 @@ public class ProjetoService {
 
     @Transactional
     public ProjetoResponseDTO create(ProjetoRequestDTO request) {
-        access.requireManager();
         Usuario currentUser = getCurrentUser();
+        if (request.getEquipeIds() != null && !request.getEquipeIds().isEmpty()) {
+            access.requireManager();
+        }
         Projeto project = new Projeto();
         project.setNome(request.getNome().trim());
         project.setDescricao(normalizeDescription(request.getDescricao()));
@@ -135,7 +137,11 @@ public class ProjetoService {
 
     @Transactional
     public List<TeamMemberDTO> addTeamMembers(Long projetoId, List<Long> membrosIds) {
-        Projeto projeto = findManageableActiveProject(projetoId);
+        Projeto projeto = findById(projetoId);
+        if (!access.canAddTeamMembers(projeto, getCurrentUser())) {
+            throw new AccessDeniedException("Você não tem permissão para adicionar membros a este projeto.");
+        }
+        requireActiveTeam(projeto);
         List<Usuario> novosMembros = buildTeam(membrosIds, projeto.getCriador());
         Set<Long> presentes = projeto.getEquipe().stream().map(Usuario::getId)
                 .collect(java.util.stream.Collectors.toSet());
@@ -161,11 +167,15 @@ public class ProjetoService {
         access.requireManager();
         Projeto projeto = findById(projetoId);
         access.requireManage(projeto);
+        requireActiveTeam(projeto);
+        return projeto;
+    }
+
+    private void requireActiveTeam(Projeto projeto) {
         if (projeto.isArquivado()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Desarquive o projeto antes de alterar sua equipe.");
         }
-        return projeto;
     }
 
     private List<TeamMemberDTO> teamMembers(Projeto projeto) {
@@ -249,6 +259,7 @@ public class ProjetoService {
         dto.setCreatedAt(project.getCreatedAt());
         dto.setMeuPapelNoProjeto(myRole);
         dto.setPodeGerenciar(canManage(project, currentUser));
+        dto.setPodeAdicionarMembros(!project.isArquivado() && access.canAddTeamMembers(project, currentUser));
         return dto;
     }
 }

@@ -23,4 +23,5 @@ public class ProjetoResponseDTO {
     private Date createdAt;
     private String meuPapelNoProjeto;
     private boolean podeGerenciar;
+    private boolean podeAdicionarMembros;
 }

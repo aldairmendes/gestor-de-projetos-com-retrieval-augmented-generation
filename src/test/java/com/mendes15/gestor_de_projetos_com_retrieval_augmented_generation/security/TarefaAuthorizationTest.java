@@ -66,7 +66,7 @@ class TarefaAuthorizationTest {
         assertThrows(AccessDeniedException.class, () -> service.delete(10L));
         Tarefa novo = new Tarefa(); novo.setProjeto(task.getProjeto());
         assertThrows(AccessDeniedException.class, () -> service.save(novo));
-        assertThrows(AccessDeniedException.class, () -> projetoService.create(null));
+        assertThrows(AccessDeniedException.class, () -> projetoService.create(new com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.dto.ProjetoRequestDTO("Com equipe", null, List.of(2L))));
         verify(tarefas, never()).delete(any());
     }
 
