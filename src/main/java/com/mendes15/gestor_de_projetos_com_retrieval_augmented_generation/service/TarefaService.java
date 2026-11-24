@@ -38,7 +38,6 @@ public class TarefaService {
 
     @Transactional
     public Tarefa save(Tarefa tarefa) {
-        access.requireManager();
         if (tarefa.getId() != null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Uma nova tarefa não pode ter ID.");
         }
@@ -54,7 +53,6 @@ public class TarefaService {
 
     @Transactional
     public TarefaResponseDTO update(Long id, Tarefa details) {
-        access.requireManager();
         Tarefa tarefa = findAccessible(id);
         access.requireManage(tarefa.getProjeto());
         requireActive(tarefa.getProjeto());
@@ -88,7 +86,6 @@ public class TarefaService {
 
     @Transactional
     public void delete(Long id) {
-        access.requireManager();
         Tarefa tarefa = findAccessible(id);
         access.requireManage(tarefa.getProjeto());
         requireActive(tarefa.getProjeto());

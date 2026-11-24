@@ -17,6 +17,7 @@ public class ProjetoResponseDTO {
     private String descricao;
     private boolean arquivado;
     private Long criadorId;
+    private Long gerenteId;
     private List<TeamMemberDTO> equipe;
     private List<Long> equipeIds;
     private List<Long> tarefasIds;

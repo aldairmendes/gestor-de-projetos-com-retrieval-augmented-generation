@@ -65,7 +65,7 @@ class SwaggerControllerTest extends BaseIntegrationTest {
         }
         assertEquals("string",spec.at("/paths/~1api~1v1~1auth~1login/post/responses/200/content/text~1plain/schema/type").asText());
         assertEquals(4, spec.at("/components/schemas/TarefaRequestDTO/properties/status/enum").size());
-        assertEquals(3, spec.at("/components/schemas/AlterarPapeisRequest/properties/papeis/items/enum").size());
+        assertEquals(2, spec.at("/components/schemas/AlterarPapeisRequest/properties/papeis/items/enum").size());
         assertTrue(spec.at("/components/schemas/ErroApi/properties").has("erros"),
                 () -> spec.at("/components/schemas/ErroApi").toPrettyString());
     }

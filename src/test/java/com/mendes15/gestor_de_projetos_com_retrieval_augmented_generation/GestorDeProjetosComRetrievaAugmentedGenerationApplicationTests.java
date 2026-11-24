@@ -15,7 +15,7 @@ class GestorDeProjetosComRetrievaAugmentedGenerationApplicationTests extends Bas
         DataInitializer initializer = context.getBean(DataInitializer.class);
         initializer.run(); long count = roles.count(); initializer.run();
         assertEquals(count, roles.count());
-        for (String nome : new String[]{"MEMBRO", "GERENTE", "ADMINISTRADOR"})
+        for (String nome : new String[]{"MEMBRO", "ADMINISTRADOR"})
             assertTrue(roles.findByNome(nome).isPresent());
     }
 }

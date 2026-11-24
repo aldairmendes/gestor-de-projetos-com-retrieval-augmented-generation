@@ -52,13 +52,13 @@ No cadastro, repita um e-mail já utilizado para conferir **409** e tente um e-m
 | Operação | Como testar | Resultado esperado |
 | --- | --- | --- |
 | GET `/api/usuarios` | Use **Admin** e anote o `id` de cada conta pelo e-mail. Repita como **Membro**. | **200** com o diretório para **Admin**, **403** para **Membro**. |
-| PUT `/api/usuarios/{id}/papeis` | Como **Admin**, use o ID de **Gerente** e envie `{"papeis":["ROLE_GERENTE"]}`. | **200** com `ROLE_GERENTE` e `ROLE_MEMBRO`. O token existente de **Gerente** já permite consultar o diretório e criar projetos. |
+| PUT `/api/usuarios/{id}/papeis` | Como **Admin**, use o ID de **Gerente** e envie `{"papeis":["ROLE_MEMBRO"]}`. | **200** com `ROLE_MEMBRO`. A gerência será definida na criação do projeto. |
 | GET `/api/usuarios/{id}` | Como **Membro**, consulte o próprio ID e depois o ID de **Externo**. Consulte o ID de **Externo** também como **Admin**. | **200** para o titular e o administrador, **403** para a consulta de perfil alheio pelo membro. Confira que o perfil omite a senha. |
 | PUT `/api/usuarios/{id}` | Como **Membro**, envie o corpo de cadastro com seu e-mail, um novo `username` e uma nova `password`. Faça login com a nova senha. | **200**, perfil atualizado com o mesmo papel. A senha anterior passa a retornar **401** no login. |
 | POST `/api/usuarios` | Como **Admin**, envie o mesmo formato de cadastro com um e-mail novo, por exemplo `descartavel-swagger@example.com`. Guarde o ID. | **201**, usuário com `ROLE_MEMBRO`. |
 | DELETE `/api/usuarios/{id}` | Como **Admin**, exclua o usuário descartável antes de associá-lo a qualquer projeto. Consulte o mesmo ID. | **204** sem corpo e depois **404** na consulta. |
 
-A atribuição de papéis substitui a lista anterior e mantém `ROLE_MEMBRO`. Teste `{"papeis":[]}` como **Admin** para obter **400**. Como **Membro**, tente atribuir `ROLE_GERENTE` a si mesmo e confirme **403**.
+A atribuição de papéis substitui a lista anterior e mantém `ROLE_MEMBRO`. Teste `{"papeis":[]}` como **Admin** para obter **400**. Como **Membro**, tente atribuir `ROLE_ADMINISTRADOR` a si mesmo e confirme **403**.
 
 ## 4. Projetos
 
@@ -78,7 +78,7 @@ Use **Gerente**. Crie o projeto principal incluindo **Membro** e **Admin** pelo 
 | PATCH `/api/projetos/{id}/desarquivar` | Como **Gerente**, execute sem corpo antes de seguir. | **200** com `arquivado: false`. A edição volta a funcionar. |
 | DELETE `/api/projetos/{id}` | Execute somente na limpeza, com **Gerente**. | **204**. A consulta posterior do projeto excluído retorna **404**. |
 
-Repita a criação como **Membro** e como **Admin** com os papéis iniciais para conferir **403**. Como **Gerente**, use nome vazio para conferir **400**.
+Repita a criação como **Membro** e como **Admin** para conferir **201**. Cada conta será gerente do projeto que criou. Como **Gerente**, use nome vazio para conferir **400**.
 
 ## 5. Equipes
 

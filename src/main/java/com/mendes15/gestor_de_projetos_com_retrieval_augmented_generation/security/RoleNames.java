@@ -5,7 +5,6 @@ import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.
 
 public final class RoleNames {
     public static final String MEMBER = TipoRole.ROLE_MEMBRO.nome();
-    public static final String MANAGER = TipoRole.ROLE_GERENTE.nome();
     public static final String ADMIN = TipoRole.ROLE_ADMINISTRADOR.nome();
 
     private RoleNames() {}

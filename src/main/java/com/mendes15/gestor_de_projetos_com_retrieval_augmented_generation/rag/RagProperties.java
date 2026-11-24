@@ -14,7 +14,7 @@ public class RagProperties {
     private String chatModel = "gemini-3.5-flash-lite";
     private String embeddingModel = "gemini-embedding-001";
     private int dimensions = 768;
-    private int timeoutSeconds = 4;
+    private int timeoutSeconds = 30;
     private int topK = 6;
     private double minimumSimilarity = 0.3;
     private int chunkSize = 1200;

@@ -43,9 +43,9 @@ public abstract class BaseIntegrationTest {
 
     @BeforeEach protected void setupApplication() {
         mvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
-        gerente = usuario("gerente", "GERENTE");
+        gerente = usuario("gerente", "MEMBRO");
         membro = usuario("membro", "MEMBRO");
-        externo = usuario("externo", "GERENTE");
+        externo = usuario("externo", "MEMBRO");
         administrador = usuario("admin", "ADMINISTRADOR");
         projeto = project("Projeto", gerente, membro);
         tarefa = new Tarefa(); tarefa.setTitulo("Tarefa inicial"); tarefa.setConteudo("Conteúdo inicial");
@@ -60,7 +60,7 @@ public abstract class BaseIntegrationTest {
     }
 
     protected Projeto project(String nome, Usuario creator, Usuario... members) {
-        Projeto p = new Projeto(); p.setNome(nome); p.setCriador(creator);
+        Projeto p = new Projeto(); p.setNome(nome); p.setCriador(creator); p.setGerente(creator);
         p.setEquipe(new ArrayList<>(List.of(members))); p.getEquipe().add(creator);
         return projetos.saveAndFlush(p);
     }

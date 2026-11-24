@@ -34,7 +34,7 @@ public class ProjetoController {
     }
 
     @PostMapping
-    @Operation(summary = "Criar projeto", description = "Usuários autenticados podem criar um projeto apenas com o nome. O criador entra automaticamente na equipe. Enviar IDs de outros integrantes na criação exige ROLE_GERENTE.")
+    @Operation(summary = "Criar projeto", description = "Usuários autenticados podem criar um projeto com equipe inicial opcional. O criador entra automaticamente na equipe como gerente do projeto.")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true,
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = "{\"nome\":\"Plataforma RAG\"}")))
     @ApiResponses({
@@ -72,7 +72,7 @@ public class ProjetoController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Atualizar projeto e equipe", description = "Exige ROLE_GERENTE e participação na equipe. Não permite editar projeto arquivado. equipeIds nulo preserva a equipe; quando informado, substitui a equipe e mantém o criador.")
+    @Operation(summary = "Atualizar projeto e equipe", description = "Exige permissão de gerente no projeto e participação na equipe. Não permite editar projeto arquivado. equipeIds nulo preserva a equipe. Informe gerenteId para transferir a gerência a um integrante da equipe resultante. O criador permanece na equipe.")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true,
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = "{\"nome\":\"Plataforma RAG\",\"descricao\":\"Descrição atualizada\",\"equipeIds\":[2,3]}")))
     @ApiResponses({
@@ -90,7 +90,7 @@ public class ProjetoController {
     }
 
     @PatchMapping("/{id}/arquivar")
-    @Operation(summary = "Arquivar projeto", description = "Exige ROLE_GERENTE e participação na equipe. O projeto continua visível, mas suas tarefas não podem ser alteradas.")
+    @Operation(summary = "Arquivar projeto", description = "Exige permissão de gerente no projeto e participação na equipe. O projeto continua visível, mas suas tarefas não podem ser alteradas.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Operação realizada com sucesso.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ProjetoResponseDTO.class))),
             @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest"),
@@ -103,7 +103,7 @@ public class ProjetoController {
     }
 
     @PatchMapping("/{id}/desarquivar")
-    @Operation(summary = "Desarquivar projeto", description = "Exige ROLE_GERENTE e participação na equipe. Reabilita as alterações no projeto e nas tarefas.")
+    @Operation(summary = "Desarquivar projeto", description = "Exige permissão de gerente no projeto e participação na equipe. Reabilita as alterações no projeto e nas tarefas.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Operação realizada com sucesso.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = ProjetoResponseDTO.class))),
             @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest"),
@@ -116,7 +116,7 @@ public class ProjetoController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Excluir projeto", description = "Exige ROLE_GERENTE e participação na equipe. Exclui o projeto e suas tarefas definitivamente.")
+    @Operation(summary = "Excluir projeto", description = "Exige permissão de gerente no projeto e participação na equipe. Exclui o projeto e suas tarefas definitivamente.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Registro excluído; resposta sem corpo.", content = @Content),
             @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest"),

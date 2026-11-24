@@ -62,13 +62,13 @@ class TarefaAuthorizationTest {
         assertThrows(AccessDeniedException.class, () -> service.delete(10L));
         Tarefa novo = new Tarefa(); novo.setProjeto(task.getProjeto());
         assertThrows(AccessDeniedException.class, () -> service.save(novo));
-        assertThrows(AccessDeniedException.class, () -> projetoService.create(new com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.dto.ProjetoRequestDTO("Com equipe", null, List.of(2L))));
         verify(tarefas, never()).delete(any());
     }
 
     @Test void transferRequiresMembershipAtDestination() {
-        Usuario user = login(TipoRole.ROLE_GERENTE);
+        Usuario user = login(TipoRole.ROLE_MEMBRO);
         Tarefa source = task(project(20L, user));
+        source.getProjeto().setGerente(user);
         Tarefa update = new Tarefa(); update.setProjeto(project(30L));
         assertThrows(AccessDeniedException.class, () -> service.update(10L, update));
         assertEquals(20L, source.getProjeto().getId());
@@ -76,16 +76,18 @@ class TarefaAuthorizationTest {
     }
 
     @Test void transferRequiresMembershipAtOrigin() {
-        Usuario user = login(TipoRole.ROLE_GERENTE);
+        Usuario user = login(TipoRole.ROLE_MEMBRO);
         task(project(20L));
         Tarefa update = new Tarefa(); update.setProjeto(project(30L, user));
+        update.getProjeto().setGerente(user);
         assertThrows(AccessDeniedException.class, () -> service.update(10L, update));
         verify(tarefas, never()).save(any());
     }
 
     @Test void managerCanCreateAndDeleteInOwnTeam() {
-        Usuario user = login(TipoRole.ROLE_GERENTE);
+        Usuario user = login(TipoRole.ROLE_MEMBRO);
         Projeto project = project(20L, user);
+        project.setGerente(user);
         Tarefa novo = new Tarefa(); novo.setProjeto(project);
         when(tarefas.save(novo)).thenReturn(novo);
         assertSame(novo, service.save(novo));
@@ -95,8 +97,10 @@ class TarefaAuthorizationTest {
     }
 
     @Test void archivedProjectsRejectTaskChanges() {
-        Usuario user = login(TipoRole.ROLE_GERENTE);
-        Projeto project = project(20L, user); project.setArquivado(true);
+        Usuario user = login(TipoRole.ROLE_MEMBRO);
+        Projeto project = project(20L, user);
+        project.setGerente(user);
+        project.setArquivado(true);
         task(project);
         assertThrows(ResponseStatusException.class, () -> service.updateStatus(10L, StatusTarefa.CONCLUIDA));
         assertThrows(ResponseStatusException.class, () -> service.delete(10L));

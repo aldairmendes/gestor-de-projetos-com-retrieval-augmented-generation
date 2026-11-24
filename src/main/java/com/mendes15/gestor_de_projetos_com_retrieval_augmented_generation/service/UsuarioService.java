@@ -12,8 +12,10 @@ import org.springframework.transaction.annotation.Transactional;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.security.AccessPolicy;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.security.RoleNames;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.RoleRepository;
+import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.ProjetoRepository;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.Role;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.enums.TipoRole;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
@@ -34,8 +36,14 @@ public class UsuarioService {
     private final PasswordEncoder passwordEncoder;
     private final RoleRepository roleRepository;
 
+    private final ProjetoRepository projetoRepository;
+
     public List<UsuarioResponseDTO> findAll() {
-        if (!RoleNames.hasRole(access.currentUser(), RoleNames.MANAGER)) access.requireAdmin();
+        Usuario user = access.currentUser();
+        if (!RoleNames.hasRole(user, RoleNames.ADMIN)
+                && !projetoRepository.existsByGerente_IdAndEquipe_Id(user.getId(), user.getId())) {
+            throw new AccessDeniedException("Diretório disponível a gerentes de projeto e administradores.");
+        }
         return usuarioRepository.findAll()
                 .stream()
                 .map(this::toDTO)

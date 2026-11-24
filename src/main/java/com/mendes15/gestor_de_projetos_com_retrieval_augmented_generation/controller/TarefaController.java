@@ -37,7 +37,7 @@ public class TarefaController {
     private final TarefaService tarefaService;
 
     @PostMapping
-    @Operation(summary = "Criar tarefa", description = "Exige ROLE_GERENTE e participação na equipe do projeto informado. O projeto deve estar ativo.")
+    @Operation(summary = "Criar tarefa", description = "Exige permissão de gerente no projeto e participação na equipe do projeto informado. O projeto deve estar ativo.")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true,
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = "{\"titulo\":\"Documentar API\",\"conteudo\":\"Adicionar documentação Swagger\",\"status\":\"PENDENTE\",\"prioridade\":\"ALTA\",\"projetoId\":1}")))
     @ApiResponses({
@@ -107,7 +107,7 @@ public class TarefaController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Atualizar ou transferir tarefa", description = "Exige ROLE_GERENTE e participação na equipe. Ao alterar projetoId, exige permissão nos projetos de origem e destino. Ambos devem estar ativos.")
+    @Operation(summary = "Atualizar ou transferir tarefa", description = "Exige permissão de gerente no projeto e participação na equipe. Ao alterar projetoId, exige permissão nos projetos de origem e destino. Ambos devem estar ativos.")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true,
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = "{\"titulo\":\"Documentar API\",\"conteudo\":\"Revisar exemplos\",\"status\":\"EM_ANDAMENTO\",\"prioridade\":\"ALTA\",\"projetoId\":1}")))
     @ApiResponses({
@@ -170,7 +170,7 @@ public class TarefaController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Excluir tarefa", description = "Exige ROLE_GERENTE e participação na equipe do projeto. O projeto deve estar ativo.")
+    @Operation(summary = "Excluir tarefa", description = "Exige permissão de gerente no projeto e participação na equipe do projeto. O projeto deve estar ativo.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Registro excluído; resposta sem corpo.", content = @Content),
             @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest"),

@@ -59,7 +59,7 @@ public class UsuarioController {
     }
 
     @GetMapping
-    @Operation(summary = "Consultar diretório de usuários", description = "Exige ROLE_GERENTE ou ROLE_ADMINISTRADOR. Permite consultar os usuários para formar equipes.")
+    @Operation(summary = "Consultar diretório de usuários", description = "Exige ser gerente de um projeto ou administrador. Permite consultar os usuários para formar equipes.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Operação realizada com sucesso.", content = @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = UsuarioResponseDTO.class)))),
             @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthorized"),
@@ -125,7 +125,7 @@ public class UsuarioController {
     @PutMapping("/{id}/papeis")
     @Operation(summary = "Substituir papéis globais", description = "Exige ROLE_ADMINISTRADOR. Substitui os papéis informados e sempre preserva ROLE_MEMBRO. As novas permissões são verificadas no banco sem exigir novo JWT.")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true,
-            content = @Content(mediaType = "application/json", examples = @ExampleObject(value = "{\"papeis\":[\"ROLE_GERENTE\"]}")))
+            content = @Content(mediaType = "application/json", examples = @ExampleObject(value = "{\"papeis\":[\"ROLE_ADMINISTRADOR\"]}")))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Operação realizada com sucesso.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = UsuarioResponseDTO.class))),
             @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest"),

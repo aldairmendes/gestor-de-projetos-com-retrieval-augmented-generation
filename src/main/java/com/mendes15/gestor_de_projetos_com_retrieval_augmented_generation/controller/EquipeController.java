@@ -44,7 +44,7 @@ public class EquipeController {
     }
 
     @PutMapping
-    @Operation(summary = "Definir equipe do projeto", description = "Exige ROLE_GERENTE e participação na equipe de um projeto ativo. Substitui os integrantes, preservando o criador. Uma lista vazia mantém somente o criador. Não altera nome ou descrição do projeto. Se o gerente remover a si mesmo, perderá acesso ao projeto.")
+    @Operation(summary = "Definir equipe do projeto", description = "Exige permissão de gerente no projeto e participação na equipe de um projeto ativo. Substitui os integrantes, preservando o criador e o gerente atual.")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true,
             content = @Content(mediaType = "application/json",
                     examples = @ExampleObject(value = "{\"membrosIds\":[2,3]}")))
@@ -65,7 +65,7 @@ public class EquipeController {
     }
 
     @PostMapping("/membros")
-    @Operation(summary = "Adicionar membros à equipe", description = "Disponível ao criador e aos gerentes da equipe de um projeto ativo. Adiciona usuários cadastrados e preserva os integrantes atuais. IDs repetidos ou já presentes não duplicam membros. A inclusão concede acesso ao projeto e às suas tarefas; não promove papéis globais.")
+    @Operation(summary = "Adicionar membros à equipe", description = "Disponível ao gerente de um projeto ativo. Adiciona usuários cadastrados e preserva os integrantes atuais. IDs repetidos ou já presentes não duplicam membros. A inclusão concede acesso ao projeto e às suas tarefas; não promove papéis globais.")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true,
             content = @Content(mediaType = "application/json",
                     examples = @ExampleObject(value = "{\"membrosIds\":[2,3]}")))
@@ -86,7 +86,7 @@ public class EquipeController {
     }
 
     @DeleteMapping("/membros/{usuarioId}")
-    @Operation(summary = "Remover membro da equipe", description = "Exige ROLE_GERENTE e participação na equipe de um projeto ativo. O criador não pode ser removido. A remoção revoga o acesso ao projeto e às suas tarefas, sem excluir a conta do usuário ou alterar seus papéis.")
+    @Operation(summary = "Remover membro da equipe", description = "Exige permissão de gerente no projeto e participação na equipe de um projeto ativo. O criador permanece na equipe. Para remover o gerente atual, transfira a gerência primeiro. A remoção revoga o acesso ao projeto e às suas tarefas, sem excluir a conta do usuário ou alterar seus papéis.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Membro removido.", content = @Content),
             @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest"),

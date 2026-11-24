@@ -5,8 +5,6 @@ import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.*;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.service.UsuarioService;
 import org.junit.jupiter.api.*;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -20,7 +18,7 @@ class UsuarioAuthorizationTest {
     final RoleRepository roles = mock(RoleRepository.class);
     final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(4);
     final UsuarioService service = new UsuarioService(usuarios, new ModelMapper(),
-            new AccessPolicy(usuarios), encoder, roles);
+            new AccessPolicy(usuarios), encoder, roles, mock(ProjetoRepository.class));
 
     @AfterEach void clear() { SecurityContextHolder.clearContext(); }
 
@@ -30,9 +28,8 @@ class UsuarioAuthorizationTest {
         when(usuarios.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
     }
 
-    @ParameterizedTest @EnumSource(value = TipoRole.class, names = {"ROLE_MEMBRO", "ROLE_GERENTE"})
-    void nonAdminCannotAssignGlobalRoles(TipoRole role) {
-        login(role);
+    @Test void nonAdminCannotAssignGlobalRoles() {
+        login(TipoRole.ROLE_MEMBRO);
         assertThrows(AccessDeniedException.class,
                 () -> service.updateRoles(1L, Set.of(TipoRole.ROLE_ADMINISTRADOR)));
         verify(usuarios, never()).save(any());
@@ -43,10 +40,10 @@ class UsuarioAuthorizationTest {
         Usuario target = AccessPolicyTest.user(TipoRole.ROLE_MEMBRO); target.setId(2L);
         when(usuarios.findById(2L)).thenReturn(Optional.of(target));
         when(roles.findByNome("MEMBRO")).thenReturn(Optional.of(new Role(1L, "MEMBRO")));
-        when(roles.findByNome("GERENTE")).thenReturn(Optional.of(new Role(2L, "GERENTE")));
+        when(roles.findByNome("ADMINISTRADOR")).thenReturn(Optional.of(new Role(2L, "ADMINISTRADOR")));
         when(usuarios.save(target)).thenReturn(target);
-        assertEquals(Set.of(TipoRole.ROLE_MEMBRO, TipoRole.ROLE_GERENTE),
-                service.updateRoles(2L, Set.of(TipoRole.ROLE_GERENTE)).getPapeis());
+        assertEquals(Set.of(TipoRole.ROLE_MEMBRO, TipoRole.ROLE_ADMINISTRADOR),
+                service.updateRoles(2L, Set.of(TipoRole.ROLE_ADMINISTRADOR)).getPapeis());
     }
 
     @Test void adminCreationHashesPasswordAndIgnoresInjectedRoles() {

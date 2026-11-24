@@ -2,12 +2,16 @@ package com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.rag;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 import java.util.*;
 
 @Component
+@Slf4j
 public class GeminiGateway implements LanguageModel, EmbeddingProvider {
     private final RagProperties properties;
     private final ObjectMapper json;
@@ -32,8 +36,11 @@ public class GeminiGateway implements LanguageModel, EmbeddingProvider {
         try {
             return client.post().uri(path).header("x-goog-api-key", properties.getApiKey())
                     .body(body).retrieve().body(JsonNode.class);
-        } catch (RuntimeException ex) {
-            // Não propaga mensagens HTTP que possam conter dados do contexto ou credenciais.
+        } catch (RestClientResponseException ex) {
+            log.warn("Gemini retornou HTTP {} em {}.", ex.getStatusCode().value(), path);
+            throw new AiUnavailableException("Provedor de IA indisponível.");
+        } catch (RestClientException ex) {
+            log.warn("Falha de comunicação com o Gemini em {} ({}).", path, ex.getClass().getSimpleName());
             throw new AiUnavailableException("Provedor de IA indisponível.");
         }
     }

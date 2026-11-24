@@ -38,6 +38,12 @@ public class Projeto {
     @EqualsAndHashCode.Exclude
     private Usuario criador;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "gerente_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private Usuario gerente;
+
     @ManyToMany
     @JoinTable(
             name = "projeto_usuarios",
