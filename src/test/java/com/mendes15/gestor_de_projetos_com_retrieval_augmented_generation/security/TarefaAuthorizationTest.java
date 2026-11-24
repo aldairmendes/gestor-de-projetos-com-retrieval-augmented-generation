@@ -21,7 +21,8 @@ class TarefaAuthorizationTest {
     final UsuarioRepository usuarios = mock(UsuarioRepository.class);
     final AccessPolicy policy = new AccessPolicy(usuarios);
     final ProjetoService projetoService = new ProjetoService(projetos, usuarios, policy);
-    final TarefaService service = new TarefaService(tarefas, new ModelMapper(), projetoService, policy, mock(HistoricoTarefaRepository.class), usuarios);
+    final TarefaService service = new TarefaService(tarefas, new ModelMapper(), projetoService, policy, mock(HistoricoTarefaRepository.class), usuarios,
+            projetos, mock(DependenciaTarefaRepository.class));
 
     @AfterEach void clear() { SecurityContextHolder.clearContext(); }
 
@@ -35,12 +36,15 @@ class TarefaAuthorizationTest {
     Projeto project(long id, Usuario... team) {
         Projeto p = new Projeto(); p.setId(id); p.setEquipe(List.of(team));
         when(projetos.findById(id)).thenReturn(Optional.of(p));
+        when(projetos.findForUpdateById(id)).thenReturn(Optional.of(p));
         return p;
     }
 
     Tarefa task(Projeto projeto) {
         Tarefa t = new Tarefa(); t.setId(10L); t.setTitulo("Tarefa"); t.setProjeto(projeto);
         when(tarefas.findById(10L)).thenReturn(Optional.of(t));
+        when(tarefas.buscarProjetoId(10L)).thenReturn(Optional.of(projeto.getId()));
+        when(tarefas.findByIdAndProjetoId(10L, projeto.getId())).thenReturn(Optional.of(t));
         return t;
     }
 

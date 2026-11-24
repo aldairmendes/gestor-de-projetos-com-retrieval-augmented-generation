@@ -107,7 +107,7 @@ public class TarefaController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Atualizar ou transferir tarefa", description = "Exige permissão de gerente no projeto e participação na equipe. Ao alterar projetoId, exige permissão nos projetos de origem e destino. Ambos devem estar ativos.")
+    @Operation(summary = "Atualizar ou transferir tarefa", description = "Exige ROLE_GERENTE e participação na equipe. Ao alterar projetoId, exige permissão nos projetos de origem e destino. Ambos devem estar ativos. Remova os vínculos de dependência antes de transferir.")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true,
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = "{\"titulo\":\"Documentar API\",\"conteudo\":\"Revisar exemplos\",\"status\":\"EM_ANDAMENTO\",\"prioridade\":\"ALTA\",\"projetoId\":1}")))
     @ApiResponses({

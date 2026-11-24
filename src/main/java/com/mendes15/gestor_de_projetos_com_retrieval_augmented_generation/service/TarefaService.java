@@ -6,6 +6,8 @@ import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.Tarefa;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.enums.StatusTarefa;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.TarefaRepository;
+import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.ProjetoRepository;
+import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.DependenciaTarefaRepository;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.security.AccessPolicy;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
@@ -26,6 +28,9 @@ public class TarefaService {
     private final AccessPolicy access;
     private final com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.HistoricoTarefaRepository historico;
     private final com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.UsuarioRepository usuarios;
+
+    private final ProjetoRepository projetos;
+    private final DependenciaTarefaRepository dependencias;
 
     public List<TarefaResponseDTO> findAll() {
         return tarefaRepository.findDistinctByProjeto_Equipe_Id(access.currentUser().getId())
@@ -53,13 +58,16 @@ public class TarefaService {
 
     @Transactional
     public TarefaResponseDTO update(Long id, Tarefa details) {
-        Tarefa tarefa = findAccessible(id);
+        access.requireManager();
+        Tarefa tarefa = tarefaEditavel(id);
         access.requireManage(tarefa.getProjeto());
-        requireActive(tarefa.getProjeto());
         // Transferências exigem permissão tanto no projeto de origem quanto no destino.
         Projeto destino = resolveProject(details);
         access.requireManage(destino);
         requireActive(destino);
+        if (!tarefa.getProjeto().getId().equals(destino.getId()) && dependencias.possuiVinculos(id)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Remova as dependências antes de transferir a tarefa.");
+        }
         normalizeMetadata(details, destino);
         tarefa.setRequisitos(details.getRequisitos()); tarefa.setTecnologias(details.getTecnologias());
         tarefa.setComplexidade(details.getComplexidade()); tarefa.setPrazo(details.getPrazo());
@@ -76,8 +84,7 @@ public class TarefaService {
 
     @Transactional
     public TarefaResponseDTO updateStatus(Long id, StatusTarefa status) {
-        Tarefa tarefa = findAccessible(id);
-        requireActive(tarefa.getProjeto());
+        Tarefa tarefa = tarefaEditavel(id);
         if (status == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Status obrigatório.");
         tarefa.setStatus(status);
         Tarefa saved=tarefaRepository.save(tarefa); audit(saved,"STATUS");
@@ -86,9 +93,9 @@ public class TarefaService {
 
     @Transactional
     public void delete(Long id) {
-        Tarefa tarefa = findAccessible(id);
+        access.requireManager();
+        Tarefa tarefa = tarefaEditavel(id);
         access.requireManage(tarefa.getProjeto());
-        requireActive(tarefa.getProjeto());
         // Mantém a associação bidirecional consistente para evitar que o cascade
         // do projeto volte a persistir uma tarefa já marcada para exclusão.
         tarefa.getProjeto().getTarefas().removeIf(item -> java.util.Objects.equals(item.getId(), tarefa.getId()));
@@ -107,7 +114,8 @@ public class TarefaService {
     }
 
     @Transactional public void assign(Long id,Long usuarioId) {
-        Tarefa tarefa=findAccessible(id); access.requireManage(tarefa.getProjeto()); requireActive(tarefa.getProjeto());
+        Tarefa tarefa = tarefaEditavel(id);
+        access.requireManage(tarefa.getProjeto());
         var user=usuarios.findById(usuarioId).orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,"Responsável não encontrado."));
         if (tarefa.getProjeto().getEquipe().stream().noneMatch(m -> m.getId().equals(usuarioId)))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Responsável deve pertencer à equipe.");
@@ -134,7 +142,20 @@ public class TarefaService {
         event.setStatus(tarefa.getStatus().name()); historico.save(event);
     }
 
-    private Tarefa findAccessible(Long id) {
+    Tarefa tarefaEditavel(Long id) {
+        Long projetoId = tarefaRepository.buscarProjetoId(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada."));
+        // O bloqueio do projeto serializa mudanças no grafo e transferências a partir dele.
+        Projeto projeto = projetos.findForUpdateById(projetoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Projeto não encontrado."));
+        access.requireView(projeto);
+        requireActive(projeto);
+        return tarefaRepository.findByIdAndProjetoId(id, projetoId)
+                .filter(tarefa -> tarefa.getProjeto().getId().equals(projetoId))
+                .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada neste projeto."));
+    }
+
+    Tarefa findAccessible(Long id) {
         Tarefa tarefa = tarefaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada."));
         access.requireView(tarefa.getProjeto());

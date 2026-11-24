@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
 
 public interface ProjetoRepository extends JpaRepository<Projeto, Long> {
     boolean existsByGerente_IdAndEquipe_Id(Long gerenteId, Long membroId);
@@ -17,4 +19,6 @@ public interface ProjetoRepository extends JpaRepository<Projeto, Long> {
     Optional<Projeto> findForUpdate(@Param("id") Long id);
 
     List<Projeto> findDistinctByEquipe_Id(Long usuarioId);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<Projeto> findForUpdateById(Long id);
 }
