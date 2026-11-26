@@ -1,5 +1,6 @@
 package com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.rag;
 
+import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -38,7 +39,7 @@ public class DocumentParser {
                 if (text.indexOf(0)>=0) throw bad("Arquivo de texto contém dados binários.");
                 checkLength(text.length()); split(text,null,result);
             } else throw new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE,"Use PDF, Markdown ou texto UTF-8.");
-        } catch (java.io.IOException ex) { throw bad("Não foi possível extrair o texto do arquivo."); }
+        } catch (IOException ex) { throw bad("Não foi possível extrair o texto do arquivo."); }
         if (result.isEmpty()) throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,"Arquivo sem texto extraível. PDFs digitalizados precisam de OCR antes do envio.");
         return result;
     }

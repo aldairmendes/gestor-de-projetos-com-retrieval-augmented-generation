@@ -2,21 +2,29 @@ package com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.servi
 
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.dto.TarefaResponseDTO;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.exception.ResourceNotFoundException;
+import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.HistoricoTarefa;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.Projeto;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.Tarefa;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.enums.StatusTarefa;
-import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.TarefaRepository;
-import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.ProjetoRepository;
+import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.rag.RagDtos;
+import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.ColunaQuadroRepository;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.DependenciaTarefaRepository;
+import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.HistoricoTarefaRepository;
+import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.ProjetoRepository;
+import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.TarefaRepository;
+import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.UsuarioRepository;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.security.AccessPolicy;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -26,11 +34,17 @@ public class TarefaService {
     private final ModelMapper modelMapper;
     private final ProjetoService projetoService;
     private final AccessPolicy access;
-    private final com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.HistoricoTarefaRepository historico;
-    private final com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.UsuarioRepository usuarios;
+    private final HistoricoTarefaRepository historico;
+    private final UsuarioRepository usuarios;
 
     private final ProjetoRepository projetos;
     private final DependenciaTarefaRepository dependencias;
+    private ColunaQuadroRepository colunas;
+
+    @Autowired
+    void setColunas(ColunaQuadroRepository colunas) {
+        this.colunas = colunas;
+    }
 
     public List<TarefaResponseDTO> findAll() {
         return tarefaRepository.findDistinctByProjeto_Equipe_Id(access.currentUser().getId())
@@ -43,6 +57,11 @@ public class TarefaService {
 
     @Transactional
     public Tarefa save(Tarefa tarefa) {
+        return save(tarefa, null);
+    }
+
+    @Transactional
+    public Tarefa save(Tarefa tarefa, Long colunaId) {
         access.requireManager();
         if (tarefa.getId() != null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Uma nova tarefa não pode ter ID.");
@@ -52,6 +71,7 @@ public class TarefaService {
         requireActive(projeto);
         tarefa.setProjeto(projeto);
         normalizeMetadata(tarefa, projeto);
+        if (colunaId != null) posicionar(tarefa, colunaId);
         Tarefa saved=tarefaRepository.save(tarefa);
         audit(saved,"CRIACAO");
         return saved;
@@ -59,6 +79,11 @@ public class TarefaService {
 
     @Transactional
     public TarefaResponseDTO update(Long id, Tarefa details) {
+        return update(id, details, null);
+    }
+
+    @Transactional
+    public TarefaResponseDTO update(Long id, Tarefa details, Long colunaId) {
         access.requireManager();
         Tarefa tarefa = tarefaEditavel(id);
         access.requireManage(tarefa.getProjeto());
@@ -77,7 +102,10 @@ public class TarefaService {
         tarefa.setConteudo(details.getConteudo());
         tarefa.setStatus(details.getStatus());
         tarefa.setPrioridade(details.getPrioridade());
+        boolean transferida = !tarefa.getProjeto().getId().equals(destino.getId());
         tarefa.setProjeto(destino);
+        if (transferida) tarefa.setColuna(null);
+        if (colunaId != null) posicionar(tarefa, colunaId);
         Tarefa saved=tarefaRepository.save(tarefa);
         audit(saved,"ATUALIZACAO");
         return toResponseDTO(saved);
@@ -88,8 +116,39 @@ public class TarefaService {
         Tarefa tarefa = tarefaEditavel(id);
         if (status == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Status obrigatório.");
         tarefa.setStatus(status);
+        sincronizarColuna(tarefa);
         Tarefa saved=tarefaRepository.save(tarefa); audit(saved,"STATUS");
         return toResponseDTO(saved);
+    }
+
+
+    @Transactional
+    public TarefaResponseDTO moveToColumn(Long id, Long colunaId) {
+        if (colunaId == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Coluna obrigatória.");
+        Tarefa tarefa = tarefaEditavel(id);
+        posicionar(tarefa, colunaId);
+        Tarefa saved = tarefaRepository.save(tarefa);
+        audit(saved, "COLUNA");
+        return toResponseDTO(saved);
+    }
+
+    private void posicionar(Tarefa tarefa, Long colunaId) {
+        var coluna = colunas.findById(colunaId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Coluna não encontrada."));
+        if (!coluna.getQuadro().getProjeto().getId().equals(tarefa.getProjeto().getId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A coluna deve pertencer a um quadro do projeto da tarefa.");
+        }
+        tarefa.setColuna(coluna);
+        if (coluna.getStatus() != null) tarefa.setStatus(coluna.getStatus());
+    }
+
+    private void sincronizarColuna(Tarefa tarefa) {
+        var atual = tarefa.getColuna();
+        if (atual == null || atual.getStatus() == null || atual.getStatus() == tarefa.getStatus()) return;
+        tarefa.setColuna(colunas.findByQuadroIdOrderByPosicaoAsc(atual.getQuadro().getId()).stream()
+                .filter(coluna -> coluna.getStatus() == tarefa.getStatus())
+                .findFirst()
+                .orElse(null));
     }
 
     @Transactional
@@ -99,7 +158,7 @@ public class TarefaService {
         access.requireManage(tarefa.getProjeto());
         // Mantém a associação bidirecional consistente para evitar que o cascade
         // do projeto volte a persistir uma tarefa já marcada para exclusão.
-        tarefa.getProjeto().getTarefas().removeIf(item -> java.util.Objects.equals(item.getId(), tarefa.getId()));
+        tarefa.getProjeto().getTarefas().removeIf(item -> Objects.equals(item.getId(), tarefa.getId()));
         tarefaRepository.delete(tarefa);
     }
 
@@ -108,10 +167,10 @@ public class TarefaService {
         return tarefaRepository.findByProjetoId(projetoId).stream().map(this::toResponseDTO).toList();
     }
 
-    public List<com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.rag.RagDtos.Historico> history(Long id) {
+    public List<RagDtos.Historico> history(Long id) {
         Tarefa tarefa = findAccessible(id);
         return historico.findByTarefaIdAndProjetoIdOrderByIdAsc(id, tarefa.getProjeto().getId()).stream().map(h ->
-                new com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.rag.RagDtos.Historico(h.getId(),h.getAcao(),h.getAtorId(),h.getResponsavelId(),h.getStatus(),h.getCriadoEm())).toList();
+                new RagDtos.Historico(h.getId(),h.getAcao(),h.getAtorId(),h.getResponsavelId(),h.getStatus(),h.getCriadoEm())).toList();
     }
 
     @Transactional public void assign(Long id,Long usuarioId) {
@@ -124,9 +183,9 @@ public class TarefaService {
     }
 
     private void normalizeMetadata(Tarefa tarefa,Projeto projeto) {
-        if (tarefa.getTecnologias()==null) tarefa.setTecnologias(new java.util.LinkedHashSet<>());
+        if (tarefa.getTecnologias()==null) tarefa.setTecnologias(new LinkedHashSet<>());
         else tarefa.setTecnologias(tarefa.getTecnologias().stream().map(String::strip).filter(t -> !t.isEmpty())
-                .collect(java.util.stream.Collectors.toCollection(java.util.LinkedHashSet::new)));
+                .collect(Collectors.toCollection(LinkedHashSet::new)));
         if (tarefa.getResponsavel()!=null) {
             Long userId=tarefa.getResponsavel().getId();
             if (userId==null || projeto.getEquipe().stream().noneMatch(u -> u.getId().equals(userId)))
@@ -136,7 +195,7 @@ public class TarefaService {
     }
 
     private void audit(Tarefa tarefa,String action) {
-        var event=new com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.HistoricoTarefa(); event.setTarefa(tarefa);
+        var event=new HistoricoTarefa(); event.setTarefa(tarefa);
         event.setProjetoId(tarefa.getProjeto().getId());
         event.setAcao(action); event.setAtorId(access.currentUser().getId());
         event.setResponsavelId(tarefa.getResponsavel()==null ? null : tarefa.getResponsavel().getId());
@@ -178,6 +237,8 @@ public class TarefaService {
         TarefaResponseDTO dto = modelMapper.map(tarefa, TarefaResponseDTO.class);
         dto.setProjetoId(tarefa.getProjeto().getId());
         dto.setResponsavelId(tarefa.getResponsavel()==null ? null : tarefa.getResponsavel().getId());
+        dto.setColunaId(tarefa.getColuna() == null ? null : tarefa.getColuna().getId());
+        dto.setQuadroId(tarefa.getColuna() == null ? null : tarefa.getColuna().getQuadro().getId());
         return dto;
     }
 }

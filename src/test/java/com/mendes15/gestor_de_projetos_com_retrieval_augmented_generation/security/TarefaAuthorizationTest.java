@@ -1,5 +1,6 @@
 package com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.security;
 
+import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.dto.ProjetoRequestDTO;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.*;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.enums.*;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.*;
@@ -66,7 +67,7 @@ class TarefaAuthorizationTest {
         assertThrows(AccessDeniedException.class, () -> service.delete(10L));
         Tarefa novo = new Tarefa(); novo.setProjeto(task.getProjeto());
         assertThrows(AccessDeniedException.class, () -> service.save(novo));
-        assertThrows(AccessDeniedException.class, () -> projetoService.create(new com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.dto.ProjetoRequestDTO("Com equipe", null, List.of(2L))));
+        assertThrows(AccessDeniedException.class, () -> projetoService.create(new ProjetoRequestDTO("Com equipe", null, List.of(2L))));
         verify(tarefas, never()).delete(any());
     }
 

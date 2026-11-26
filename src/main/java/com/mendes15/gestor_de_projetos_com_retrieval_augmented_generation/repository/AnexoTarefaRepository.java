@@ -3,6 +3,7 @@ package com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repos
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.dto.TarefaColaboracaoDto.Anexo;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.AnexoTarefa;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
@@ -19,7 +20,7 @@ public interface AnexoTarefaRepository extends JpaRepository<AnexoTarefa, Long> 
 
     Optional<AnexoTarefa> findByIdAndTarefaId(Long anexoId, Long tarefaId);
 
-    @org.springframework.data.jpa.repository.Modifying
+    @Modifying
     @Query("delete from AnexoTarefa a where a.id = :anexoId and a.tarefa.id = :tarefaId")
     int remover(Long tarefaId, Long anexoId);
 }

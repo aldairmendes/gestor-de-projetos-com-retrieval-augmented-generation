@@ -1,6 +1,7 @@
 package com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.rag;
 
 import lombok.Data;
+import lombok.ToString;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -9,7 +10,7 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "rag")
 public class RagProperties {
     private boolean enabled = false;
-    @lombok.ToString.Exclude
+    @ToString.Exclude
     private String apiKey = "";
     private String chatModel = "gemini-3.5-flash-lite";
     private String embeddingModel = "gemini-embedding-001";

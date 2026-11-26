@@ -2,7 +2,12 @@ package com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.contr
 
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.BaseIntegrationTest;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.dto.ProjetoRequestDTO;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.MediaType;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
@@ -23,8 +28,8 @@ class ProjetoControllerTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.podeGerenciar").value(true));
     }
 
-    @org.junit.jupiter.params.ParameterizedTest
-    @org.junit.jupiter.params.provider.ValueSource(strings = {"", ",\"equipeIds\":[]", ",\"equipeIds\":null"})
+    @ParameterizedTest
+    @ValueSource(strings = {"", ",\"equipeIds\":[]", ",\"equipeIds\":null"})
     void memberCreatesEmptyProjectAndAddsPeopleLater(String equipe) throws Exception {
         String token = jwt.generateToken(membro);
         var criado = mvc.perform(post("/api/projetos").header("Authorization", "Bearer " + token)
@@ -47,8 +52,8 @@ class ProjetoControllerTest extends BaseIntegrationTest {
         reload();
         mvc.perform(get(novo).with(as(externo))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.equipeIds.length()").value(2));
-        assertEquals(java.util.Set.of("MEMBRO"), usuarios.findById(membro.getId()).orElseThrow().getRoles()
-                .stream().map(role -> role.getNome()).collect(java.util.stream.Collectors.toSet()));
+        assertEquals(Set.of("MEMBRO"), usuarios.findById(membro.getId()).orElseThrow().getRoles()
+                .stream().map(role -> role.getNome()).collect(Collectors.toSet()));
         mvc.perform(post(url() + "/equipe/membros").with(as(membro)).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"membrosIds\":[" + externo.getId() + "]}"))
                 .andExpect(status().isForbidden());
@@ -136,7 +141,7 @@ class ProjetoControllerTest extends BaseIntegrationTest {
 
     @Test void demotedCreatorLosesManagementEvenWithOldJwt() throws Exception {
         String token = jwt.generateToken(gerente);
-        gerente.setRoles(new java.util.HashSet<>(java.util.Set.of(roles.findByNome("MEMBRO").orElseThrow())));
+        gerente.setRoles(new HashSet<>(Set.of(roles.findByNome("MEMBRO").orElseThrow())));
         usuarios.saveAndFlush(gerente);
         mvc.perform(patch(url()+"/arquivar").header("Authorization", "Bearer "+token))
                 .andExpect(status().isForbidden());

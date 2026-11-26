@@ -24,6 +24,7 @@ As decisões de acesso estão nos serviços (`AccessPolicy`), além das restriç
 ## Endpoints adicionados
 
 - `PATCH /api/tarefas/{id}/status?novoStatus=EM_ANDAMENTO`: atualiza apenas o status, usando `StatusTarefa`.
+- `PATCH /api/tarefas/{id}/coluna?colunaId=3`: move a tarefa para uma coluna de um quadro do mesmo projeto; como a mudança de status, é permitido a qualquer integrante da equipe em projeto ativo.
 - `PUT /api/usuarios/{id}/papeis`: recebe `{"papeis":["ROLE_GERENTE"]}`; somente administrador. O papel mínimo `ROLE_MEMBRO` é preservado. A resposta de usuário inclui `papeis`.
 
 O cadastro público continua atribuindo somente membro. O administrador inicial pode ser criado com `ADMIN_EMAIL` e `ADMIN_PASSWORD`, como já previsto no projeto. Para exercer as operações de gerenciamento reservadas a gerentes, ele pode atribuir a si também esse papel pelo endpoint administrativo. Os papéis atuais são carregados do banco durante a autenticação e autorização, sem confiar em permissões antigas do JWT.

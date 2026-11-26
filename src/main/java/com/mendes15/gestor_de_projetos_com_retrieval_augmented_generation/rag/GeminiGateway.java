@@ -2,6 +2,7 @@ package com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.rag;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Duration;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -16,8 +17,8 @@ public class GeminiGateway implements LanguageModel, EmbeddingProvider {
     public GeminiGateway(RagProperties properties, ObjectMapper json) {
         this.properties = properties; this.json = json;
         var factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(java.time.Duration.ofSeconds(properties.getTimeoutSeconds()));
-        factory.setReadTimeout(java.time.Duration.ofSeconds(properties.getTimeoutSeconds()));
+        factory.setConnectTimeout(Duration.ofSeconds(properties.getTimeoutSeconds()));
+        factory.setReadTimeout(Duration.ofSeconds(properties.getTimeoutSeconds()));
         client = RestClient.builder().baseUrl("https://generativelanguage.googleapis.com/v1beta")
                 .requestFactory(factory).build();
     }
