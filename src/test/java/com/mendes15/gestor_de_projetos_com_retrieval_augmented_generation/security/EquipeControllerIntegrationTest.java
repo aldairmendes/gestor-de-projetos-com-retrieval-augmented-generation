@@ -1,7 +1,9 @@
 package com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.security;
 
+import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.BaseIntegrationTest;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.*;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.*;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import java.util.List;
@@ -12,7 +14,7 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-class EquipeControllerIntegrationTest extends com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.BaseIntegrationTest {
+class EquipeControllerIntegrationTest extends BaseIntegrationTest {
     String url() { return "/api/projetos/" + projeto.getId() + "/equipe"; }
     String body(Long... ids) {
         return "{\"membrosIds\":" + List.of(ids) + "}";
@@ -23,7 +25,7 @@ class EquipeControllerIntegrationTest extends com.mendes15.gestor_de_projetos_co
                         .contentType(MediaType.APPLICATION_JSON).content(body(externo.getId())))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(2));
         assertEquals(Set.of(gerente.getId(), externo.getId()), projeto.getEquipe().stream()
-                .map(Usuario::getId).collect(java.util.stream.Collectors.toSet()));
+                .map(Usuario::getId).collect(Collectors.toSet()));
         assertEquals("Projeto", projeto.getNome());
     }
 
@@ -125,9 +127,9 @@ class EquipeControllerIntegrationTest extends com.mendes15.gestor_de_projetos_co
                         .content(body(externo.getId())))
                 .andExpect(status().isOk());
         reload();
-        assertEquals(java.util.Set.of(gerente.getId(), externo.getId()),
+        assertEquals(Set.of(gerente.getId(), externo.getId()),
                 projetos.findById(projeto.getId()).orElseThrow().getEquipe().stream()
-                        .map(usuario -> usuario.getId()).collect(java.util.stream.Collectors.toSet()));
+                        .map(usuario -> usuario.getId()).collect(Collectors.toSet()));
         mvc.perform(get(url()).with(as(membro))).andExpect(status().isForbidden());
         mvc.perform(get(url()).with(as(externo))).andExpect(status().isOk());
     }

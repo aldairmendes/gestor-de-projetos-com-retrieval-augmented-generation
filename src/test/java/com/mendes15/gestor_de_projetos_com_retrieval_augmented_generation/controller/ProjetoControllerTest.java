@@ -5,8 +5,12 @@ import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.config
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.dto.ProjetoRequestDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.MediaType;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -58,8 +62,8 @@ class ProjetoControllerTest extends BaseIntegrationTest {
                 .andExpect(status().isForbidden());
     }
 
-    @org.junit.jupiter.params.ParameterizedTest
-    @org.junit.jupiter.params.provider.ValueSource(strings = {"", ",\"equipeIds\":[]", ",\"equipeIds\":null"})
+    @ParameterizedTest
+    @ValueSource(strings = {"", ",\"equipeIds\":[]", ",\"equipeIds\":null"})
     void memberCreatesEmptyProjectAndAddsPeopleLater(String equipe) throws Exception {
         String token = jwt.generateToken(membro);
         var criado = mvc.perform(post("/api/projetos").header("Authorization", "Bearer " + token)
@@ -82,8 +86,8 @@ class ProjetoControllerTest extends BaseIntegrationTest {
         reload();
         mvc.perform(get(novo).with(as(externo))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.equipeIds.length()").value(2));
-        assertEquals(java.util.Set.of("MEMBRO"), usuarios.findById(membro.getId()).orElseThrow().getRoles()
-                .stream().map(role -> role.getNome()).collect(java.util.stream.Collectors.toSet()));
+        assertEquals(Set.of("MEMBRO"), usuarios.findById(membro.getId()).orElseThrow().getRoles()
+                .stream().map(role -> role.getNome()).collect(Collectors.toSet()));
         mvc.perform(post(url() + "/equipe/membros").with(as(membro)).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"membrosIds\":[" + externo.getId() + "]}"))
                 .andExpect(status().isForbidden());

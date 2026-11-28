@@ -3,6 +3,7 @@ package com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.secur
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.config.DataInitializer;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.*;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.*;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -34,7 +35,7 @@ class DataInitializerTest {
         assertEquals("admin@example.com", admin.getEmail());
         assertTrue(encoder.matches("SenhaAdmin123!", admin.getPassword()));
         assertEquals(Set.of("MEMBRO", "ADMINISTRADOR"), admin.getRoles().stream()
-                .map(Role::getNome).collect(java.util.stream.Collectors.toSet()));
+                .map(Role::getNome).collect(Collectors.toSet()));
     }
 
     @Test void existingAdminIsNotRecreatedOrOverwritten() {

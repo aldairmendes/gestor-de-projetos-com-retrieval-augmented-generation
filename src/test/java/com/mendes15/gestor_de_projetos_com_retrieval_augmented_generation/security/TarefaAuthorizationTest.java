@@ -1,5 +1,6 @@
 package com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.security;
 
+import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.dto.ProjetoRequestDTO;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.*;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.enums.*;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.*;

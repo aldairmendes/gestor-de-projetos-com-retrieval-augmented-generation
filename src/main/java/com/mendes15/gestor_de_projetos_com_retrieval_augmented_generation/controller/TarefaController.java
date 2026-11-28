@@ -52,7 +52,7 @@ public class TarefaController {
             @Valid @RequestBody TarefaRequestDTO request) {
 
         Tarefa tarefa = toTask(request);
-        Tarefa tarefaSalva = tarefaService.save(tarefa);
+        Tarefa tarefaSalva = tarefaService.save(tarefa, request.getColunaId());
 
         TarefaResponseDTO response =
                 tarefaService.toResponseDTO(tarefaSalva);
@@ -107,7 +107,7 @@ public class TarefaController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Atualizar ou transferir tarefa", description = "Exige ROLE_GERENTE e participação na equipe. Ao alterar projetoId, exige permissão nos projetos de origem e destino. Ambos devem estar ativos. Remova os vínculos de dependência antes de transferir.")
+    @Operation(summary = "Atualizar ou transferir tarefa", description = "Exige permissão de gerente no projeto e participação na equipe. Ao alterar projetoId, exige permissão nos projetos de origem e destino. Ambos devem estar ativos. Remova os vínculos de dependência antes de transferir.")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true,
             content = @Content(mediaType = "application/json", examples = @ExampleObject(value = "{\"titulo\":\"Documentar API\",\"conteudo\":\"Revisar exemplos\",\"status\":\"EM_ANDAMENTO\",\"prioridade\":\"ALTA\",\"projetoId\":1}")))
     @ApiResponses({
@@ -122,7 +122,7 @@ public class TarefaController {
             @Parameter(description = "ID do tarefa", example = "1", required = true) @PathVariable Long id,
             @Valid @RequestBody TarefaRequestDTO request) {
 
-        return ResponseEntity.ok(tarefaService.update(id, toTask(request)));
+        return ResponseEntity.ok(tarefaService.update(id, toTask(request), request.getColunaId()));
     }
 
     private Tarefa toTask(TarefaRequestDTO request) {
@@ -167,6 +167,22 @@ public class TarefaController {
             @Parameter(description = "Novo status da tarefa", example = "EM_ANDAMENTO", required = true)
             @RequestParam StatusTarefa novoStatus) {
         return ResponseEntity.ok(tarefaService.updateStatus(id, novoStatus));
+    }
+
+    @PatchMapping("/{id}/coluna")
+    @Operation(summary = "Mover tarefa para uma coluna", description = "Qualquer integrante da equipe pode mover a tarefa para uma coluna de um quadro do mesmo projeto. O projeto deve estar ativo. Se a coluna tiver status vinculado, a tarefa assume esse status.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Operação realizada com sucesso.", content = @Content(mediaType = "application/json", schema = @Schema(implementation = TarefaResponseDTO.class))),
+            @ApiResponse(responseCode = "400", ref = "#/components/responses/BadRequest"),
+            @ApiResponse(responseCode = "401", ref = "#/components/responses/Unauthorized"),
+            @ApiResponse(responseCode = "403", ref = "#/components/responses/Forbidden"),
+            @ApiResponse(responseCode = "404", ref = "#/components/responses/NotFound"),
+            @ApiResponse(responseCode = "409", ref = "#/components/responses/Conflict")
+    })
+    public ResponseEntity<TarefaResponseDTO> moveToColumn(@Parameter(description = "ID da tarefa", example = "1", required = true) @PathVariable Long id,
+            @Parameter(description = "ID da coluna de destino", example = "3", required = true)
+            @RequestParam Long colunaId) {
+        return ResponseEntity.ok(tarefaService.moveToColumn(id, colunaId));
     }
 
     @DeleteMapping("/{id}")

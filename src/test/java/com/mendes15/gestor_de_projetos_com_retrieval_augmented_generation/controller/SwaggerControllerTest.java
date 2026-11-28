@@ -2,6 +2,9 @@ package com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.contr
 
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.BaseIntegrationTest;
 import com.fasterxml.jackson.databind.JsonNode;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
@@ -16,8 +19,8 @@ class SwaggerControllerTest extends BaseIntegrationTest {
 
     JsonNode specification() throws Exception {
         String document = mvc.perform(get("/v3/api-docs")).andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
-        java.nio.file.Files.writeString(java.nio.file.Path.of("target/openapi.json"), document);
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        Files.writeString(Path.of("target/openapi.json"), document);
         return objectMapper.readTree(document);
     }
 
@@ -38,7 +41,7 @@ class SwaggerControllerTest extends BaseIntegrationTest {
                 }
             }
         }
-        assertEquals(56, operations);
+        assertEquals(57, operations);
         assertEquals("bearer", spec.at("/components/securitySchemes/bearerAuth/scheme").asText());
     }
 

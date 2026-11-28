@@ -29,6 +29,20 @@ O criador é o gerente inicial. O gerente atual pode transferir a gerência para
 
 Erros seguem o formato `{ status, erro, mensagem, erros?, timestamp }`.
 
+## Quadros, colunas e tarefas
+
+| Método | Rota | Descrição |
+|---|---|---|
+| GET | `/api/projetos/{id}/quadros` | Quadros do projeto, com as colunas em ordem |
+| POST / PUT | `/api/projetos/{id}/quadros[/{quadroId}]` | `{"nome":"Principal","colunas":[{"nome":"A fazer","status":"PENDENTE"},{"nome":"Em revisão"},{"nome":"Concluído","status":"CONCLUIDA"}]}` |
+| PATCH | `/api/tarefas/{id}/coluna?colunaId={colunaId}` | Move a tarefa para uma coluna de um quadro do mesmo projeto (qualquer integrante, projeto ativo) |
+
+- Cada coluna pode ter um **status vinculado** (opcional). A tarefa que entra na coluna assume esse status; colunas sem vínculo (ex.: "Em revisão") preservam o status atual.
+- `POST`/`PUT /api/tarefas` aceitam `colunaId` (no `PUT`, nulo mantém a coluna atual). A resposta da tarefa inclui `colunaId` e `quadroId`, nulos quando a tarefa não está em nenhum quadro.
+- `PATCH /api/tarefas/{id}/status` mantém coluna e status coerentes: se a coluna atual está vinculada a outro status, a tarefa vai para a primeira coluna do mesmo quadro vinculada ao novo status ou sai do quadro.
+- Ao remover colunas com tarefas no `PUT` do quadro, informe o destino em `realocacoes` (`{"idRemovida": idDestino}`, para uma coluna mantida); sem isso a API responde 409. Colunas vazias podem ser removidas livremente.
+- Transferir a tarefa para outro projeto a retira da coluna.
+
 ## IA e RAG
 
 A API inicia com a IA externa desabilitada. Para habilitar embeddings e respostas geradas, use PostgreSQL com pgvector (imagem incluída no Compose) e defina `RAG_ENABLED=true` e `GEMINI_API_KEY` no ambiente da aplicação. Os modelos podem ser configurados por `GEMINI_CHAT_MODEL` e `GEMINI_EMBEDDING_MODEL`. O tempo limite do Gemini pode ser ajustado por `GEMINI_TIMEOUT_SECONDS` (padrão de 30 segundos). Na inicialização, o usuário do banco precisa ter acesso à extensão `vector` e permissão para criar a tabela de vetores e o índice HNSW. Preserve a dimensão do índice ao mudar o modelo ou reconstrua a indexação com a nova dimensão.

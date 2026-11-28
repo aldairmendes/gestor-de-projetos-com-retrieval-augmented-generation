@@ -2,8 +2,15 @@ package com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.dto;
 
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.enums.PrioridadeTarefa;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.enums.StatusTarefa;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
+import java.time.LocalDate;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -26,14 +33,17 @@ public class TarefaRequestDTO {
 
     @NotNull(message = "Project ID is required")
     private Long projetoId;
-    @jakarta.validation.constraints.Size(max=10000)
+    @Size(max=10000)
     private String requisitos;
-    @jakarta.validation.constraints.Size(max=30)
-    private java.util.Set<@jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(max=100) String> tecnologias = new java.util.LinkedHashSet<>();
-    @jakarta.validation.constraints.Min(1) @jakarta.validation.constraints.Max(5)
+    @Size(max=30)
+    private Set<@NotBlank @Size(max=100) String> tecnologias = new LinkedHashSet<>();
+    @Min(1) @Max(5)
     private Integer complexidade;
-    private java.time.LocalDate prazo;
+    private LocalDate prazo;
     private Long responsavelId;
+
+    @Positive
+    private Long colunaId;
 
     public TarefaRequestDTO(String titulo, String conteudo, StatusTarefa status, PrioridadeTarefa prioridade, Long projetoId) {
         this.titulo=titulo; this.conteudo=conteudo; this.status=status; this.prioridade=prioridade; this.projetoId=projetoId;

@@ -3,6 +3,9 @@ package com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.contr
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.BaseIntegrationTest;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.dto.*;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.Usuario;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import io.jsonwebtoken.Jwts;
@@ -28,7 +31,7 @@ class AuthControllerTest extends BaseIntegrationTest {
         Usuario novo = usuarios.findByEmail("novo@example.com").orElseThrow();
         assertTrue(passwordEncoder.matches(PASSWORD, novo.getPassword()));
         assertEquals("novo@example.com", jwt.extractUsername(token));
-        assertEquals(java.util.List.of("MEMBRO"), jwt.extractClaim(token, c -> c.get("roles")));
+        assertEquals(List.of("MEMBRO"), jwt.extractClaim(token, c -> c.get("roles")));
         mvc.perform(get("/api/usuarios/" + novo.getId()).header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.username").value("novo_usuario"))
                 .andExpect(jsonPath("$.password").doesNotExist());
@@ -96,7 +99,7 @@ class AuthControllerTest extends BaseIntegrationTest {
                         .content("{\"username\":\"intruso\",\"email\":\"intruso@example.com\",\"password\":\"Senha123!\",\"roles\":[\"ADMINISTRADOR\"]}"))
                 .andExpect(status().isOk());
         var user = usuarios.findByEmail("intruso@example.com").orElseThrow();
-        assertEquals(java.util.Set.of("MEMBRO"), user.getRoles().stream()
-                .map(r -> r.getNome()).collect(java.util.stream.Collectors.toSet()));
+        assertEquals(Set.of("MEMBRO"), user.getRoles().stream()
+                .map(r -> r.getNome()).collect(Collectors.toSet()));
     }
 }

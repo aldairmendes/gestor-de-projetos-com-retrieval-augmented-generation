@@ -5,6 +5,7 @@ import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.rag.Pr
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -48,7 +49,7 @@ public class IaAdminController {
 
     @DeleteMapping("/projetos/{projetoId}/documentos/{documentoId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "204", description = "Documento excluído.", content = @Content)
+    @ApiResponse(responseCode = "204", description = "Documento excluído.", content = @Content)
     @Operation(summary = "Excluir documento indexado", description = "Administrador integrante remove o documento, seus trechos e vetores.")
     public void delete(@PathVariable Long projetoId, @PathVariable Long documentoId) {
         documents.delete(projetoId, documentoId);
