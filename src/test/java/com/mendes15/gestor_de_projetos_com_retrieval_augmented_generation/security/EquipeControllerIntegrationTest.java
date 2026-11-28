@@ -21,7 +21,7 @@ class EquipeControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test void managerDefinesTeamAndKeepsCreator() throws Exception {
-        mvc.perform(put(url()).with(user(gerente.getEmail()).roles("GERENTE"))
+        mvc.perform(put(url()).with(user(gerente.getEmail()).roles("MEMBRO"))
                         .contentType(MediaType.APPLICATION_JSON).content(body(externo.getId())))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(2));
         assertEquals(Set.of(gerente.getId(), externo.getId()), projeto.getEquipe().stream()
@@ -30,7 +30,7 @@ class EquipeControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test void emptyTeamRetainsCreator() throws Exception {
-        mvc.perform(put(url()).with(user(gerente.getEmail()).roles("GERENTE"))
+        mvc.perform(put(url()).with(user(gerente.getEmail()).roles("MEMBRO"))
                         .contentType(MediaType.APPLICATION_JSON).content(body()))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].id").value(gerente.getId()));
@@ -39,11 +39,11 @@ class EquipeControllerIntegrationTest extends BaseIntegrationTest {
     @Test void additionsAreIdempotentAndGrantProjectAccess() throws Exception {
         String request = body(externo.getId(), externo.getId(), membro.getId());
         for (int i = 0; i < 2; i++) {
-            mvc.perform(post(url() + "/membros").with(user(gerente.getEmail()).roles("GERENTE"))
+            mvc.perform(post(url() + "/membros").with(user(gerente.getEmail()).roles("MEMBRO"))
                             .contentType(MediaType.APPLICATION_JSON).content(request))
                     .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(3));
         }
-        mvc.perform(get("/api/projetos/" + projeto.getId()).with(user(externo.getEmail()).roles("GERENTE")))
+        mvc.perform(get("/api/projetos/" + projeto.getId()).with(user(externo.getEmail()).roles("MEMBRO")))
                 .andExpect(status().isOk());
         assertEquals(1, externo.getRoles().size());
     }
@@ -52,7 +52,7 @@ class EquipeControllerIntegrationTest extends BaseIntegrationTest {
         Tarefa tarefa = new Tarefa(); tarefa.setTitulo("Tarefa"); tarefa.setProjeto(projeto);
         tarefa = tarefas.saveAndFlush(tarefa);
         mvc.perform(delete(url() + "/membros/" + membro.getId())
-                        .with(user(gerente.getEmail()).roles("GERENTE"))).andExpect(status().isNoContent());
+                        .with(user(gerente.getEmail()).roles("MEMBRO"))).andExpect(status().isNoContent());
         mvc.perform(get("/api/projetos/" + projeto.getId()).with(user(membro.getEmail()).roles("MEMBRO")))
                 .andExpect(status().isForbidden());
         mvc.perform(get("/api/tarefas/" + tarefa.getId()).with(user(membro.getEmail()).roles("MEMBRO")))
@@ -70,9 +70,9 @@ class EquipeControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test void outsidersCannotReadOrManageTeams() throws Exception {
-        mvc.perform(get(url()).with(user(externo.getEmail()).roles("GERENTE")))
+        mvc.perform(get(url()).with(user(externo.getEmail()).roles("MEMBRO")))
                 .andExpect(status().isForbidden());
-        mvc.perform(post(url() + "/membros").with(user(externo.getEmail()).roles("GERENTE"))
+        mvc.perform(post(url() + "/membros").with(user(externo.getEmail()).roles("MEMBRO"))
                         .contentType(MediaType.APPLICATION_JSON).content(body(externo.getId())))
                 .andExpect(status().isForbidden());
         mvc.perform(get(url()).with(user(administrador.getEmail()).roles("ADMINISTRADOR")))
@@ -80,7 +80,7 @@ class EquipeControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test void unknownUserRejectsEntireAddition() throws Exception {
-        mvc.perform(post(url() + "/membros").with(user(gerente.getEmail()).roles("GERENTE"))
+        mvc.perform(post(url() + "/membros").with(user(gerente.getEmail()).roles("MEMBRO"))
                         .contentType(MediaType.APPLICATION_JSON).content(body(externo.getId(), Long.MAX_VALUE)))
                 .andExpect(status().isBadRequest());
         assertEquals(2, projeto.getEquipe().size());
@@ -88,7 +88,7 @@ class EquipeControllerIntegrationTest extends BaseIntegrationTest {
 
     @Test void invalidIdsAreRejected() throws Exception {
         for (String request : List.of("{}", "{\"membrosIds\":null}", "{\"membrosIds\":[null]}", "{\"membrosIds\":[0]}", "{\"membrosIds\":[-1]}")) {
-            mvc.perform(put(url()).with(user(gerente.getEmail()).roles("GERENTE"))
+            mvc.perform(put(url()).with(user(gerente.getEmail()).roles("MEMBRO"))
                             .contentType(MediaType.APPLICATION_JSON).content(request))
                     .andExpect(status().isBadRequest());
         }
@@ -97,25 +97,25 @@ class EquipeControllerIntegrationTest extends BaseIntegrationTest {
 
     @Test void creatorCannotBeRemoved() throws Exception {
         mvc.perform(delete(url() + "/membros/" + gerente.getId())
-                        .with(user(gerente.getEmail()).roles("GERENTE"))).andExpect(status().isConflict());
+                        .with(user(gerente.getEmail()).roles("MEMBRO"))).andExpect(status().isConflict());
     }
 
     @Test void nonMemberRemovalReturns404() throws Exception {
         mvc.perform(delete(url() + "/membros/" + externo.getId())
-                        .with(user(gerente.getEmail()).roles("GERENTE"))).andExpect(status().isNotFound());
+                        .with(user(gerente.getEmail()).roles("MEMBRO"))).andExpect(status().isNotFound());
     }
 
     @Test void archivedProjectsAllowReadingButRejectTeamChanges() throws Exception {
         projeto.setArquivado(true); projetos.saveAndFlush(projeto);
         mvc.perform(get(url()).with(user(membro.getEmail()).roles("MEMBRO"))).andExpect(status().isOk());
-        mvc.perform(put(url()).with(user(gerente.getEmail()).roles("GERENTE"))
+        mvc.perform(put(url()).with(user(gerente.getEmail()).roles("MEMBRO"))
                         .contentType(MediaType.APPLICATION_JSON).content(body(externo.getId())))
                 .andExpect(status().isConflict());
-        mvc.perform(post(url() + "/membros").with(user(gerente.getEmail()).roles("GERENTE"))
+        mvc.perform(post(url() + "/membros").with(user(gerente.getEmail()).roles("MEMBRO"))
                         .contentType(MediaType.APPLICATION_JSON).content(body(externo.getId())))
                 .andExpect(status().isConflict());
         mvc.perform(delete(url() + "/membros/" + membro.getId())
-                        .with(user(gerente.getEmail()).roles("GERENTE"))).andExpect(status().isConflict());
+                        .with(user(gerente.getEmail()).roles("MEMBRO"))).andExpect(status().isConflict());
     }
 
     @Test void authenticationIsRequired() throws Exception {
@@ -141,11 +141,13 @@ class EquipeControllerIntegrationTest extends BaseIntegrationTest {
         assertEquals(2, projeto.getEquipe().size());
     }
 
-    @Test void nonCreatorManagerCanLeaveAndLosesAccess() throws Exception {
-        projeto.getEquipe().add(externo); projetos.saveAndFlush(projeto);
+    @Test void currentManagerMustTransferManagementBeforeLeaving() throws Exception {
+        projeto.getEquipe().add(externo);
+        projeto.setGerente(externo);
+        projetos.saveAndFlush(projeto);
         mvc.perform(delete(url()+"/membros/"+externo.getId()).with(as(externo)))
-                .andExpect(status().isNoContent());
-        mvc.perform(get(url()).with(as(externo))).andExpect(status().isForbidden());
+                .andExpect(status().isConflict());
+        mvc.perform(get(url()).with(as(externo))).andExpect(status().isOk());
     }
 
     @Test void unknownProjectReturns404() throws Exception {

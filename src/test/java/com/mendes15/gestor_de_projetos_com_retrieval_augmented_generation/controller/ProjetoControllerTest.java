@@ -1,20 +1,22 @@
 package com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.controller;
 
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.BaseIntegrationTest;
+import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.config.DataInitializer;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.dto.ProjetoRequestDTO;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.MediaType;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 class ProjetoControllerTest extends BaseIntegrationTest {
+    @Autowired DataInitializer initializer;
     String url() { return "/api/projetos/" + projeto.getId(); }
 
     @Test void managerCreatesProjectWithDeduplicatedTeamAndCreator() throws Exception {
@@ -28,6 +30,38 @@ class ProjetoControllerTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.podeGerenciar").value(true));
     }
 
+    @Test void creatorManagesOwnProjectWithoutGlobalPromotion() throws Exception {
+        String token = "Bearer " + jwt.generateToken(membro);
+        var response = mvc.perform(post("/api/projetos").header("Authorization", token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Meu projeto\"}"))
+                .andExpect(status().isCreated()).andReturn().getResponse();
+        long id = objectMapper.readTree(response.getContentAsByteArray()).get("id").asLong();
+        String quadro = """
+                {"nome":"Kanban","colunas":[{"nome":"A fazer"}]}
+                """;
+        String tarefa = """
+                {"titulo":"Planejar","status":"PENDENTE","prioridade":"ALTA","projetoId":%d}
+                """;
+
+        mvc.perform(post("/api/tarefas").header("Authorization", token)
+                        .contentType(MediaType.APPLICATION_JSON).content(tarefa.formatted(id)))
+                .andExpect(status().isCreated());
+        mvc.perform(post("/api/projetos/{id}/quadros", id).header("Authorization", token)
+                        .contentType(MediaType.APPLICATION_JSON).content(quadro))
+                .andExpect(status().isCreated());
+        mvc.perform(get("/api/projetos/{id}", id).header("Authorization", token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.meuPapelNoProjeto").value("ROLE_GERENTE"))
+                .andExpect(jsonPath("$.podeGerenciar").value(true));
+
+        mvc.perform(post("/api/tarefas").header("Authorization", token)
+                        .contentType(MediaType.APPLICATION_JSON).content(tarefa.formatted(projeto.getId())))
+                .andExpect(status().isForbidden());
+        mvc.perform(post(url() + "/quadros").header("Authorization", token)
+                        .contentType(MediaType.APPLICATION_JSON).content(quadro))
+                .andExpect(status().isForbidden());
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"", ",\"equipeIds\":[]", ",\"equipeIds\":null"})
     void memberCreatesEmptyProjectAndAddsPeopleLater(String equipe) throws Exception {
@@ -39,7 +73,7 @@ class ProjetoControllerTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.equipeIds.length()").value(1))
                 .andExpect(jsonPath("$.equipeIds[0]").value(membro.getId()))
                 .andExpect(jsonPath("$.tarefasIds.length()").value(0))
-                .andExpect(jsonPath("$.podeGerenciar").value(false))
+                .andExpect(jsonPath("$.podeGerenciar").value(true))
                 .andExpect(jsonPath("$.podeAdicionarMembros").value(true))
                 .andReturn().getResponse();
         String novo = "/api/projetos/" + objectMapper.readTree(criado.getContentAsByteArray()).get("id").asLong();
@@ -60,10 +94,10 @@ class ProjetoControllerTest extends BaseIntegrationTest {
         mvc.perform(delete(url()).with(as(membro))).andExpect(status().isForbidden());
     }
 
-    @Test void memberCannotSetInitialTeamOrAddPeopleToArchivedProject() throws Exception {
+    @Test void memberCanSetInitialTeamButCannotAddPeopleToArchivedProject() throws Exception {
         mvc.perform(post("/api/projetos").with(as(membro)).contentType(MediaType.APPLICATION_JSON)
                         .content(json(new ProjetoRequestDTO("Com equipe", null, List.of(externo.getId())))))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isCreated());
         var arquivado = project("Arquivado", membro);
         arquivado.setArquivado(true);
         projetos.saveAndFlush(arquivado);
@@ -139,13 +173,38 @@ class ProjetoControllerTest extends BaseIntegrationTest {
                 .andExpect(status().isBadRequest());
     }
 
-    @Test void demotedCreatorLosesManagementEvenWithOldJwt() throws Exception {
-        String token = jwt.generateToken(gerente);
-        gerente.setRoles(new HashSet<>(Set.of(roles.findByNome("MEMBRO").orElseThrow())));
-        usuarios.saveAndFlush(gerente);
-        mvc.perform(patch(url()+"/arquivar").header("Authorization", "Bearer "+token))
+    @Test void startupMigratesLegacyGlobalManagersToProjectManagers() {
+        var legado = usuario("legado", "GERENTE");
+        var antigo = project("Projeto antigo", legado);
+        antigo.setGerente(null);
+        projetos.saveAndFlush(antigo);
+        projeto.setGerente(membro);
+        reload();
+
+        initializer.run();
+        initializer.run();
+        reload();
+
+        assertEquals(legado.getId(), projetos.findById(antigo.getId()).orElseThrow().getGerente().getId());
+        assertEquals(membro.getId(), projetos.findById(projeto.getId()).orElseThrow().getGerente().getId());
+        assertTrue(roles.findByNome("GERENTE").isEmpty());
+        var papeis = usuarios.findById(legado.getId()).orElseThrow().getAuthorities();
+        assertEquals(1, papeis.size());
+        assertEquals("ROLE_MEMBRO", papeis.iterator().next().getAuthority());
+    }
+
+    @Test void managementTransferIsPersistedAndScopedToTheProject() throws Exception {
+        var outro = project("Outro projeto", gerente, membro);
+        mvc.perform(put(url()).with(as(gerente)).contentType(MediaType.APPLICATION_JSON)
+                        .content(json(new ProjetoRequestDTO("Projeto", null, null, membro.getId()))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.criadorId").value(gerente.getId()))
+                .andExpect(jsonPath("$.gerenteId").value(membro.getId()))
+                .andExpect(jsonPath("$.podeGerenciar").value(false));
+        reload();
+        mvc.perform(patch(url()+"/arquivar").with(as(gerente))).andExpect(status().isForbidden());
+        mvc.perform(patch(url()+"/arquivar").with(as(membro))).andExpect(status().isOk());
+        mvc.perform(patch("/api/projetos/"+outro.getId()+"/arquivar").with(as(membro)))
                 .andExpect(status().isForbidden());
-        mvc.perform(get(url()).header("Authorization", "Bearer "+token))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.podeGerenciar").value(false));
     }
 }

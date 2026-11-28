@@ -32,12 +32,12 @@ public class AccessPolicy {
     }
 
     public boolean canManage(Projeto projeto, Usuario user) {
-        return RoleNames.hasRole(user, RoleNames.MANAGER) && canView(projeto, user);
+        return canView(projeto, user) && projeto.getGerente() != null
+                && Objects.equals(projeto.getGerente().getId(), user.getId());
     }
 
     public boolean canAddTeamMembers(Projeto projeto, Usuario user) {
-        return canView(projeto, user) && (RoleNames.hasRole(user, RoleNames.MANAGER)
-                || projeto.getCriador() != null && Objects.equals(projeto.getCriador().getId(), user.getId()));
+        return canManage(projeto, user);
     }
 
     public void requireView(Projeto projeto) {
@@ -46,11 +46,6 @@ public class AccessPolicy {
 
     public void requireManage(Projeto projeto) {
         if (!canManage(projeto, currentUser())) throw new AccessDeniedException("Você não pode gerenciar este projeto.");
-    }
-
-    public void requireManager() {
-        if (!RoleNames.hasRole(currentUser(), RoleNames.MANAGER))
-            throw new AccessDeniedException("Somente gerentes podem executar esta operação.");
     }
 
     public void requireAdmin() {

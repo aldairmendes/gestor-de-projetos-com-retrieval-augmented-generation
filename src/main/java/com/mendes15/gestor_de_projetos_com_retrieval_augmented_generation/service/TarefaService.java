@@ -62,7 +62,6 @@ public class TarefaService {
 
     @Transactional
     public Tarefa save(Tarefa tarefa, Long colunaId) {
-        access.requireManager();
         if (tarefa.getId() != null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Uma nova tarefa não pode ter ID.");
         }
@@ -84,7 +83,6 @@ public class TarefaService {
 
     @Transactional
     public TarefaResponseDTO update(Long id, Tarefa details, Long colunaId) {
-        access.requireManager();
         Tarefa tarefa = tarefaEditavel(id);
         access.requireManage(tarefa.getProjeto());
         // Transferências exigem permissão tanto no projeto de origem quanto no destino.
@@ -153,7 +151,6 @@ public class TarefaService {
 
     @Transactional
     public void delete(Long id) {
-        access.requireManager();
         Tarefa tarefa = tarefaEditavel(id);
         access.requireManage(tarefa.getProjeto());
         // Mantém a associação bidirecional consistente para evitar que o cascade

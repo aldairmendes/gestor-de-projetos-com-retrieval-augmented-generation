@@ -40,7 +40,9 @@ class AccessPolicyTest {
         Projeto projeto = new Projeto();
         projeto.setEquipe(List.of(user));
         assertTrue(policy.canView(projeto, user));
-        assertEquals(role == TipoRole.ROLE_GERENTE, policy.canManage(projeto, user));
+        assertFalse(policy.canManage(projeto, user));
+        projeto.setGerente(user);
+        assertTrue(policy.canManage(projeto, user));
     }
 
     @ParameterizedTest @EnumSource(TipoRole.class)

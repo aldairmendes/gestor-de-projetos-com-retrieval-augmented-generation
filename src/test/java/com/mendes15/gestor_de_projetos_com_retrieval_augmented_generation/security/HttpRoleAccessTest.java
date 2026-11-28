@@ -45,14 +45,14 @@ class HttpRoleAccessTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"MEMBRO,200", "GERENTE,200", "ADMINISTRADOR,200"})
+    @CsvSource({"MEMBRO,200", "ADMINISTRADOR,200"})
     void authenticatedRolesCanReachProjectCreation(String role, int expected) throws Exception {
         mvc.perform(post("/api/projetos").with(user("user").roles(role)))
                 .andExpect(status().is(expected));
     }
 
     @ParameterizedTest
-    @CsvSource({"MEMBRO,403", "GERENTE,403", "ADMINISTRADOR,200"})
+    @CsvSource({"MEMBRO,403", "ADMINISTRADOR,200"})
     void onlyAdminChangesRoles(String role, int expected) throws Exception {
         mvc.perform(put("/api/usuarios/1/papeis").with(user("user").roles(role)))
                 .andExpect(status().is(expected));
@@ -69,10 +69,10 @@ class HttpRoleAccessTest {
         mvc.perform(post("/api/v1/auth/register")).andExpect(status().isOk());
     }
 
-    @Test void memberMayReachStatusEndpointButNotFullUpdate() throws Exception {
+    @Test void authenticatedMemberReachesTaskEndpointsForProjectAuthorization() throws Exception {
         mvc.perform(patch("/api/tarefas/10/status").with(user("user").roles("MEMBRO")))
                 .andExpect(status().isOk());
         mvc.perform(put("/api/tarefas/10").with(user("user").roles("MEMBRO")))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk());
     }
 }

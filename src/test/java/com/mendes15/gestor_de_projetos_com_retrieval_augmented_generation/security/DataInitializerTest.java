@@ -17,11 +17,11 @@ class DataInitializerTest {
     final RoleRepository roles = mock(RoleRepository.class);
     final UsuarioRepository usuarios = mock(UsuarioRepository.class);
     final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(4);
-    final DataInitializer initializer = new DataInitializer(roles, usuarios, encoder);
+    final DataInitializer initializer = new DataInitializer(roles, usuarios, encoder, mock(org.springframework.jdbc.core.JdbcTemplate.class));
 
     @BeforeEach void setup() {
         long id = 1;
-        for (String nome : List.of("MEMBRO", "GERENTE", "ADMINISTRADOR"))
+        for (String nome : List.of("MEMBRO", "ADMINISTRADOR"))
             when(roles.findByNome(nome)).thenReturn(Optional.of(new Role(id++, nome)));
         ReflectionTestUtils.setField(initializer, "adminEmail", "admin@example.com");
         ReflectionTestUtils.setField(initializer, "adminPassword", "SenhaAdmin123!");

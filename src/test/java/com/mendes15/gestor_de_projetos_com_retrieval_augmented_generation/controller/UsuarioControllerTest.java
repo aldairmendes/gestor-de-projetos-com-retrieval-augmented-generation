@@ -2,10 +2,8 @@ package com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.contr
 
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.BaseIntegrationTest;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.dto.UsuarioRegisterRequestDTO;
-import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
-import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -70,20 +68,10 @@ class UsuarioControllerTest extends BaseIntegrationTest {
         reload(); assertFalse(usuarios.existsById(externo.getId()));
     }
 
-    @Test void adminAssignmentRetainsMemberAndTakesEffectWithExistingJwt() throws Exception {
-        String token = jwt.generateToken(membro);
-        mvc.perform(post("/api/projetos").header("Authorization","Bearer "+token)
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Antes\",\"equipeIds\":[" + externo.getId() + "]}"))
-                .andExpect(status().isForbidden());
+    @Test void administratorCannotAssignGlobalManagerRole() throws Exception {
         mvc.perform(put(url(membro.getId())+"/papeis").with(as(administrador)).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"papeis\":[\"ROLE_GERENTE\"]}"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.papeis.length()").value(2));
-        reload();
-        assertEquals(Set.of("MEMBRO","GERENTE"), usuarios.findById(membro.getId()).orElseThrow().getRoles().stream()
-                .map(r -> r.getNome()).collect(Collectors.toSet()));
-        mvc.perform(post("/api/projetos").header("Authorization","Bearer "+token)
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"Depois\",\"equipeIds\":[" + externo.getId() + "]}"))
-                .andExpect(status().isCreated());
+                .andExpect(status().isBadRequest());
     }
 
     @Test void memberCannotPromoteSelf() throws Exception {

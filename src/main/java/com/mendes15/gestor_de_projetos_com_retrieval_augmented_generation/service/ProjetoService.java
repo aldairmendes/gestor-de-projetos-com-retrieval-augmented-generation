@@ -10,7 +10,6 @@ import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.Usuario;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.ProjetoRepository;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.UsuarioRepository;
-import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.enums.TipoRole;
 import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
@@ -29,8 +28,8 @@ import java.util.Set;
 @Service
 public class ProjetoService {
 
-    private static final String PROJECT_ROLE_MANAGER = TipoRole.ROLE_GERENTE.name();
-    private static final String PROJECT_ROLE_MEMBER = TipoRole.ROLE_MEMBRO.name();
+    private static final String PROJECT_ROLE_MANAGER = "ROLE_GERENTE";
+    private static final String PROJECT_ROLE_MEMBER = "ROLE_MEMBRO";
 
     private final AccessPolicy access;
     private final ProjetoRepository projetoRepository;
@@ -73,13 +72,14 @@ public class ProjetoService {
     @Transactional
     public ProjetoResponseDTO create(ProjetoRequestDTO request) {
         Usuario currentUser = getCurrentUser();
-        if (request.getEquipeIds() != null && !request.getEquipeIds().isEmpty()) {
-            access.requireManager();
+        if (request.getGerenteId() != null && !Objects.equals(request.getGerenteId(), currentUser.getId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O criador é o gerente inicial do projeto.");
         }
         Projeto project = new Projeto();
         project.setNome(request.getNome().trim());
         project.setDescricao(normalizeDescription(request.getDescricao()));
         project.setCriador(currentUser);
+        project.setGerente(currentUser);
         project.setEquipe(buildTeam(request.getEquipeIds(), currentUser));
         return toDTO(projetoRepository.save(project), currentUser);
     }
@@ -87,19 +87,30 @@ public class ProjetoService {
     @Transactional
     public ProjetoResponseDTO update(Long id, ProjetoRequestDTO request) {
         Usuario currentUser = getCurrentUser();
-        Projeto project = findById(id);
-        requireManagePermission(project, currentUser);
+        Projeto project = findForManagement(id, currentUser);
         if (project.isArquivado()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Projetos arquivados não podem ser editados. Desarquive o projeto primeiro.");
         }
         project.setNome(request.getNome().trim());
         project.setDescricao(normalizeDescription(request.getDescricao()));
+        List<Usuario> team = project.getEquipe();
         if (request.getEquipeIds() != null) {
-            Usuario requiredMember = project.getCriador() != null ? project.getCriador() : currentUser;
-            List<Usuario> newTeam = buildTeam(request.getEquipeIds(), requiredMember);
+            team = request.getGerenteId() == null
+                    ? buildTeam(request.getEquipeIds(), project.getCriador(), project.getGerente())
+                    : buildTeam(request.getEquipeIds(), project.getCriador());
+        }
+        if (request.getGerenteId() != null) {
+            Usuario gerente = team.stream()
+                    .filter(member -> Objects.equals(member.getId(), request.getGerenteId()))
+                    .findFirst()
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "O gerente deve integrar a equipe do projeto."));
+            project.setGerente(gerente);
+        }
+        if (request.getEquipeIds() != null) {
             project.getEquipe().clear();
-            project.getEquipe().addAll(newTeam);
+            project.getEquipe().addAll(team);
         }
         return toDTO(projetoRepository.save(project), currentUser);
     }
@@ -107,8 +118,7 @@ public class ProjetoService {
     @Transactional
     public ProjetoResponseDTO setArchived(Long id, boolean archived) {
         Usuario currentUser = getCurrentUser();
-        Projeto project = findById(id);
-        requireManagePermission(project, currentUser);
+        Projeto project = findForManagement(id, currentUser);
         project.setArquivado(archived);
         return toDTO(projetoRepository.save(project), currentUser);
     }
@@ -116,8 +126,7 @@ public class ProjetoService {
     @Transactional
     public void delete(Long id) {
         Usuario currentUser = getCurrentUser();
-        Projeto project = findById(id);
-        requireManagePermission(project, currentUser);
+        Projeto project = findForManagement(id, currentUser);
         projetoRepository.delete(project);
     }
 
@@ -129,7 +138,7 @@ public class ProjetoService {
     @Transactional
     public List<TeamMemberDTO> defineTeam(Long projetoId, List<Long> membrosIds) {
         Projeto projeto = findManageableActiveProject(projetoId);
-        List<Usuario> equipe = buildTeam(membrosIds, projeto.getCriador());
+        List<Usuario> equipe = buildTeam(membrosIds, projeto.getCriador(), projeto.getGerente());
         projeto.getEquipe().clear();
         projeto.getEquipe().addAll(equipe);
         projetoRepository.save(projeto);
@@ -138,12 +147,8 @@ public class ProjetoService {
 
     @Transactional
     public List<TeamMemberDTO> addTeamMembers(Long projetoId, List<Long> membrosIds) {
-        Projeto projeto = findById(projetoId);
-        if (!access.canAddTeamMembers(projeto, getCurrentUser())) {
-            throw new AccessDeniedException("Você não tem permissão para adicionar membros a este projeto.");
-        }
-        requireActiveTeam(projeto);
-        List<Usuario> novosMembros = buildTeam(membrosIds, projeto.getCriador());
+        Projeto projeto = findManageableActiveProject(projetoId);
+        List<Usuario> novosMembros = buildTeam(membrosIds, projeto.getCriador(), projeto.getGerente());
         Set<Long> presentes = projeto.getEquipe().stream().map(Usuario::getId)
                 .collect(Collectors.toSet());
         novosMembros.stream().filter(membro -> presentes.add(membro.getId()))
@@ -158,6 +163,9 @@ public class ProjetoService {
         if (projeto.getCriador() != null && Objects.equals(projeto.getCriador().getId(), usuarioId)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "O criador deve permanecer na equipe.");
         }
+        if (projeto.getGerente() != null && Objects.equals(projeto.getGerente().getId(), usuarioId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Transfira a gerência antes de remover o gerente.");
+        }
         if (!projeto.getEquipe().removeIf(membro -> Objects.equals(membro.getId(), usuarioId))) {
             throw new ResourceNotFoundException("Usuário não pertence à equipe deste projeto.");
         }
@@ -165,9 +173,7 @@ public class ProjetoService {
     }
 
     private Projeto findManageableActiveProject(Long projetoId) {
-        access.requireManager();
-        Projeto projeto = findById(projetoId);
-        access.requireManage(projeto);
+        Projeto projeto = findForManagement(projetoId, getCurrentUser());
         requireActiveTeam(projeto);
         return projeto;
     }
@@ -195,10 +201,13 @@ public class ProjetoService {
         return access.canManage(project, user);
     }
 
-    private void requireManagePermission(Projeto project, Usuario user) {
+    private Projeto findForManagement(Long id, Usuario user) {
+        Projeto project = projetoRepository.findForUpdate(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Projeto não encontrado com o ID: " + id));
         if (!canManage(project, user)) {
             throw new AccessDeniedException("Você não tem permissão para gerenciar este projeto.");
         }
+        return project;
     }
 
     private boolean isMember(Projeto project, Usuario user) {
@@ -206,7 +215,7 @@ public class ProjetoService {
                 && project.getEquipe().stream().anyMatch(member -> Objects.equals(member.getId(), user.getId()));
     }
 
-    private List<Usuario> buildTeam(List<Long> memberIds, Usuario requiredMember) {
+    private List<Usuario> buildTeam(List<Long> memberIds, Usuario... requiredMembers) {
         Set<Long> uniqueIds = new LinkedHashSet<>();
         if (memberIds != null) {
             if (memberIds.stream().anyMatch(id -> id == null || id <= 0)) {
@@ -222,9 +231,10 @@ public class ProjetoService {
                     "Usuário(s) não encontrado(s): " + missingIds);
         }
         List<Usuario> team = new ArrayList<>(foundUsers);
-        if (requiredMember != null
-                && team.stream().noneMatch(member -> Objects.equals(member.getId(), requiredMember.getId()))) {
-            team.add(0, requiredMember);
+        for (Usuario requiredMember : requiredMembers) {
+            if (requiredMember != null && uniqueIds.add(requiredMember.getId())) {
+                team.add(requiredMember);
+            }
         }
         return team;
     }
@@ -253,6 +263,7 @@ public class ProjetoService {
         dto.setDescricao(project.getDescricao());
         dto.setArquivado(project.isArquivado());
         dto.setCriadorId(project.getCriador() != null ? project.getCriador().getId() : null);
+        dto.setGerenteId(project.getGerente() != null ? project.getGerente().getId() : null);
         dto.setEquipe(members);
         dto.setEquipeIds(members.stream().map(TeamMemberDTO::getId).toList());
         dto.setTarefasIds(project.getTarefas() == null ? List.of()

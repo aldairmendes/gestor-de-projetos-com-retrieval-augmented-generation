@@ -23,7 +23,7 @@ Os testes de integração usam Spring Boot, MockMvc, os filtros reais de seguran
 | Projetos | Criação, listagem filtrada, consulta, atualização, substituição de equipe, arquivamento/desarquivamento, exclusão em cascata e erros | `ProjetoControllerTest` |
 | Tarefas | CRUD, listagem por projeto/usuário, atualização exclusiva de status, transferência autorizada, transferência indevida, projeto arquivado e validação de enums | `TarefaControllerTest`, `TarefaAuthorizationTest` |
 | Quadros e colunas | Status vinculado às colunas, criação de tarefa em coluna, movimentação por integrante com histórico, sincronização de coluna ao mudar o status, coluna de outro projeto, projeto arquivado, edição sem perder a coluna e realocação obrigatória ao remover coluna com tarefas | `ColunaTarefaIntegrationTest` |
-| Equipes | Definição/substituição, consulta, inclusão idempotente, remoção, persistência dos vínculos, perda de acesso, criador obrigatório, saída do gerente, IDs inválidos e projeto arquivado | `EquipeControllerIntegrationTest` |
+| Equipes | Definição/substituição, consulta, inclusão idempotente, remoção, persistência dos vínculos, perda de acesso, criador obrigatório, bloqueio da remoção do gerente atual, IDs inválidos e projeto arquivado | `EquipeControllerIntegrationTest` |
 | Usuários | Diretório, perfis, criação administrativa, senhas, exclusão e atribuição validada de papéis globais | `UsuarioControllerTest`, `UsuarioAuthorizationTest` |
 | Inicialização | Contexto da aplicação, catálogo de papéis idempotente, administrador inicial com hash e papel mínimo, preservação de conta existente | `GestorDeProjetosComRetrievaAugmentedGenerationApplicationTests`, `DataInitializerTest` |
 | Swagger | Todas as operações dos controladores REST, descrições, JWT, exemplos, schemas, referências internas, enums, respostas sem corpo e interface pública | `SwaggerControllerTest` |
@@ -44,4 +44,4 @@ A suíte verifica o comportamento atual da API. Ela não mede percentual de cobe
 - Exclusão de tarefa: sincronização da coleção de tarefas do projeto antes da exclusão, impedindo sua persistência novamente por cascata.
 - OpenAPI: preservação dos schemas usados nas respostas reutilizáveis, para que referências como `#/components/schemas/ErroApi` continuem válidas no contrato gerado.
 
-Os testes antigos foram adaptados às rotas e respostas atuais: JWT como texto puro, papéis globais e criação/gestão de projetos e tarefas reservada a gerentes integrantes da equipe. Nenhum teste foi desativado para permitir a execução da suíte.
+Os testes antigos foram adaptados às rotas e respostas atuais: JWT como texto puro, papéis globais e criação de projetos por usuários autenticados e gestão restrita ao gerente de cada projeto. Nenhum teste foi desativado para permitir a execução da suíte.
