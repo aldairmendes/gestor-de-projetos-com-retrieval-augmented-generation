@@ -3,10 +3,17 @@ package com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.enums.PrioridadeTarefa;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.enums.StatusTarefa;
 import jakarta.persistence.*;
+import java.time.LocalDate;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.util.Date;
@@ -46,15 +53,22 @@ public class Tarefa {
     @ElementCollection
     @CollectionTable(name="tarefa_tecnologias", joinColumns=@JoinColumn(name="tarefa_id"))
     @Column(name="tecnologia")
-    private java.util.Set<String> tecnologias = new java.util.LinkedHashSet<>();
+    private Set<String> tecnologias = new LinkedHashSet<>();
 
     private Integer complexidade;
-    private java.time.LocalDate prazo;
+    private LocalDate prazo;
 
     @ManyToOne(fetch=FetchType.LAZY)
     @JoinColumn(name="responsavel_id")
-    @org.hibernate.annotations.OnDelete(action=org.hibernate.annotations.OnDeleteAction.SET_NULL)
+    @OnDelete(action=OnDeleteAction.SET_NULL)
     private Usuario responsavel;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "coluna_id")
+    @OnDelete(action = OnDeleteAction.SET_NULL)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private ColunaQuadro coluna;
 
     @CreationTimestamp
     @Temporal(TemporalType.TIMESTAMP)

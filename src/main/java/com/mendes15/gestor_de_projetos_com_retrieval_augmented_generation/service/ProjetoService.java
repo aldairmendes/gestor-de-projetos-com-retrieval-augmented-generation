@@ -11,6 +11,7 @@ import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.ProjetoRepository;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.UsuarioRepository;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.enums.TipoRole;
+import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -144,7 +145,7 @@ public class ProjetoService {
         requireActiveTeam(projeto);
         List<Usuario> novosMembros = buildTeam(membrosIds, projeto.getCriador());
         Set<Long> presentes = projeto.getEquipe().stream().map(Usuario::getId)
-                .collect(java.util.stream.Collectors.toSet());
+                .collect(Collectors.toSet());
         novosMembros.stream().filter(membro -> presentes.add(membro.getId()))
                 .forEach(projeto.getEquipe()::add);
         projetoRepository.save(projeto);

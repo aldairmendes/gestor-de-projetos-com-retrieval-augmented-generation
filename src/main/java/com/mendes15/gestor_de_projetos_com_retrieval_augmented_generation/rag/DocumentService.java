@@ -4,6 +4,7 @@ import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.*;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.security.AccessPolicy;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.service.ProjetoService;
+import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,7 +33,7 @@ public class DocumentService {
         if (name.isBlank() || name.length()>200) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Nome do arquivo inválido.");
         List<DocumentParser.Chunk> chunks;
         try { chunks=parser.parse(name,file.getBytes()); }
-        catch (java.io.IOException ex) { throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Falha ao ler arquivo."); }
+        catch (IOException ex) { throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Falha ao ler arquivo."); }
         List<double[]> vectors=embeddings.embed(chunks.stream().map(DocumentParser.Chunk::texto).toList(),false);
         if (vectors.size()!=chunks.size()) throw new AiUnavailableException("Embeddings incompletos.");
         DocumentoFonte document=new DocumentoFonte(); document.setProjeto(projeto); document.setNome(name);

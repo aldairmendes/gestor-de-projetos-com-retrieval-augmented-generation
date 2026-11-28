@@ -1,11 +1,15 @@
 package com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.rag;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.*;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.*;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.security.AccessPolicy;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.service.ProjetoService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.text.Normalizer;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataAccessException;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
@@ -51,7 +55,7 @@ public class RagService {
             List<Fonte> cited=sources.stream().filter(s -> generated.fontes().contains(s.id())).toList();
             return new Resposta(generated.resposta()+"\nFontes: "+cited.stream().map(f -> "["+f.id()+"]").collect(Collectors.joining(" ")),cited,false,null);
         } catch (AiUnavailableException ex) { return fallback(sources); }
-        catch (com.fasterxml.jackson.core.JsonProcessingException ex) { throw new IllegalStateException("Falha ao preparar contexto.",ex); }
+        catch (JsonProcessingException ex) { throw new IllegalStateException("Falha ao preparar contexto.",ex); }
     }
 
     public List<Fonte> retrieve(Long projetoId,String question) {
@@ -65,7 +69,7 @@ public class RagService {
             Map<Long,Double> scores=matches.stream().collect(Collectors.toMap(VectorIndex.Match::trechoId,VectorIndex.Match::score,(a,b)->Math.max(a,b)));
             if (!scores.isEmpty()) trechos.findScoped(projetoId,scores.keySet())
                     .forEach(t -> candidates.add(DocumentService.fonte(t,scores.get(t.getId()))));
-        } catch (AiUnavailableException | org.springframework.dao.DataAccessException ex) {
+        } catch (AiUnavailableException | DataAccessException ex) {
             candidates.addAll(lexicalDocuments(projetoId, question, limit));
         }
         List<Tarefa> projectTasks=tarefas.findByProjetoId(projetoId);
@@ -84,7 +88,7 @@ public class RagService {
 
     List<Fonte> lexicalDocuments(Long projetoId, String query, int limit) {
         projetos.findById(projetoId);
-        return trechos.findForProject(projetoId, org.springframework.data.domain.PageRequest.of(0, 200)).stream()
+        return trechos.findForProject(projetoId, PageRequest.of(0, 200)).stream()
                 .map(t -> DocumentService.fonte(t, similarity(query, t.getTexto())))
                 .filter(f -> f.similaridade() > 0)
                 .sorted(Comparator.comparingDouble(Fonte::similaridade).reversed().thenComparing(Fonte::id))
@@ -115,7 +119,7 @@ public class RagService {
                 + ". Requisitos: " + limit(Objects.toString(t.getRequisitos(), ""), 500);
     }
     public static Set<String> tokens(String text) {
-        return Arrays.stream(java.text.Normalizer.normalize(Objects.toString(text,""),java.text.Normalizer.Form.NFD)
+        return Arrays.stream(Normalizer.normalize(Objects.toString(text,""),Normalizer.Form.NFD)
                 .replaceAll("\\p{M}","").toLowerCase(Locale.ROOT).split("[^\\p{L}\\p{N}]+"))
                 .filter(s -> s.length()>2).collect(Collectors.toSet());
     }

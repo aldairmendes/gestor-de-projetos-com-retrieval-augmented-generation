@@ -8,6 +8,10 @@ Execute a suíte completa com Java 21 e Maven:
 mvn test
 ```
 
+Use o Java 21: com versões mais novas (ex.: Java 27) a compilação falha no Lombok com `TypeTag :: UNKNOWN`. Se o Java padrão do terminal for outro, aponte o `JAVA_HOME` para o 21 só nesse comando, por exemplo `JAVA_HOME=~/.sdkman/candidates/java/21.0.12.fx-zulu mvn test`.
+
+`QuadroControllerPostgresTest` e `TarefaColaboracaoPostgresTest` usam PostgreSQL via Testcontainers: com o Docker ligado eles rodam; sem Docker são pulados (aparecem como *skipped*) em vez de falhar a suíte.
+
 Os testes de integração usam Spring Boot, MockMvc, os filtros reais de segurança, serviços e JPA com H2 em memória. Não exigem Docker, PostgreSQL, credenciais locais nem serviços de IA. As configurações de banco e JWT de teste estão em `src/test/resources/application-test.properties`, carregadas explicitamente pela classe base, com precedência sobre as configurações da aplicação. Os dados de cada teste de integração são revertidos por transação; IDs são obtidos das entidades persistidas.
 
 ## Funcionalidades verificadas
@@ -18,6 +22,7 @@ Os testes de integração usam Spring Boot, MockMvc, os filtros reais de seguran
 | Papéis e privacidade | Matriz de permissões, isolamento por equipe, perfil próprio, rejeição de promoção indevida, promoção/rebaixamento usando JWT existente | `AccessPolicyTest`, `HttpRoleAccessTest`, `UsuarioAuthorizationTest`, `UsuarioControllerTest`, `ProjetoControllerTest` |
 | Projetos | Criação, listagem filtrada, consulta, atualização, substituição de equipe, arquivamento/desarquivamento, exclusão em cascata e erros | `ProjetoControllerTest` |
 | Tarefas | CRUD, listagem por projeto/usuário, atualização exclusiva de status, transferência autorizada, transferência indevida, projeto arquivado e validação de enums | `TarefaControllerTest`, `TarefaAuthorizationTest` |
+| Quadros e colunas | Status vinculado às colunas, criação de tarefa em coluna, movimentação por integrante com histórico, sincronização de coluna ao mudar o status, coluna de outro projeto, projeto arquivado, edição sem perder a coluna e realocação obrigatória ao remover coluna com tarefas | `ColunaTarefaIntegrationTest` |
 | Equipes | Definição/substituição, consulta, inclusão idempotente, remoção, persistência dos vínculos, perda de acesso, criador obrigatório, saída do gerente, IDs inválidos e projeto arquivado | `EquipeControllerIntegrationTest` |
 | Usuários | Diretório, perfis, criação administrativa, senhas, exclusão e atribuição validada de papéis globais | `UsuarioControllerTest`, `UsuarioAuthorizationTest` |
 | Inicialização | Contexto da aplicação, catálogo de papéis idempotente, administrador inicial com hash e papel mínimo, preservação de conta existente | `GestorDeProjetosComRetrievaAugmentedGenerationApplicationTests`, `DataInitializerTest` |

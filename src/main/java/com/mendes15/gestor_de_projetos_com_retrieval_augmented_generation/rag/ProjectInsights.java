@@ -6,6 +6,8 @@ import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.model.
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.repository.TarefaRepository;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.security.AccessPolicy;
 import com.mendes15.gestor_de_projetos_com_retrieval_augmented_generation.service.ProjetoService;
+import java.time.Instant;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -79,13 +81,13 @@ public class ProjectInsights {
         overloaded.entrySet().removeIf(entry -> entry.getValue() < 3 || entry.getValue() <= average * 1.5);
         var overdue = open.stream().filter(t -> t.getPrazo() != null && t.getPrazo().isBefore(today)).toList();
         var stale = open.stream().filter(t -> t.getStatus() == StatusTarefa.EM_ANDAMENTO && t.getUpdatedAt() != null
-                && t.getUpdatedAt().toInstant().isBefore(java.time.Instant.now().minus(staleDays, ChronoUnit.DAYS))).toList();
+                && t.getUpdatedAt().toInstant().isBefore(Instant.now().minus(staleDays, ChronoUnit.DAYS))).toList();
         sources.add(new Fonte("G" + projetoId, "INDICADORES", projetoId, "Indicadores de gargalo", null,
                 "Carga média por integrante: %.1f. Possível sobrecarga (mínimo 3 abertas e acima de 1,5 vez a média, por ID): %s. "
                         .formatted(average, overloaded)
                         + "Atrasadas: " + overdue.size() + ". Em andamento sem atualização há mais de "
                         + staleDays + " dias: " + stale.size() + ".", 1));
-        java.util.stream.Stream.concat(overdue.stream(), stale.stream()).distinct().limit(8)
+        Stream.concat(overdue.stream(), stale.stream()).distinct().limit(8)
                 .map(t -> RagService.taskSource(t, 1)).forEach(sources::add);
         return rag.generate("Quais gargalos estão indicados pelos dados deste projeto?",
                 "Explique os indicadores e cite as evidências. Trate sobrecarga e inatividade como sinais para revisão.", sources);
